@@ -148,9 +148,26 @@ function init_db(): void {
 
     // ── bookings column migrations ──────────────────────────────────────────────
     $b_cols = array_column($db->query('PRAGMA table_info(bookings)')->fetchAll(), 'name');
-    foreach (['crm_contact_id' => "TEXT NOT NULL DEFAULT ''", 'crm_deal_id' => "TEXT NOT NULL DEFAULT ''"] as $col => $defn) {
+    foreach ([
+        'crm_contact_id' => "TEXT NOT NULL DEFAULT ''",
+        'crm_deal_id'    => "TEXT NOT NULL DEFAULT ''",
+        'amount_paid'    => 'REAL NOT NULL DEFAULT 0',
+        'payment_id'     => "TEXT NOT NULL DEFAULT ''",
+        'currency'       => "TEXT NOT NULL DEFAULT ''",
+    ] as $col => $defn) {
         if (!in_array($col, $b_cols, true)) {
             $db->exec("ALTER TABLE bookings ADD COLUMN $col $defn");
+        }
+    }
+
+    // ── workers payment column migrations ───────────────────────────────────────
+    $w_cols = array_column($db->query('PRAGMA table_info(workers)')->fetchAll(), 'name');
+    foreach ([
+        'booking_price'    => 'REAL NOT NULL DEFAULT 0',
+        'payment_required' => 'INTEGER NOT NULL DEFAULT 0',
+    ] as $col => $defn) {
+        if (!in_array($col, $w_cols, true)) {
+            $db->exec("ALTER TABLE workers ADD COLUMN $col $defn");
         }
     }
 
@@ -339,7 +356,8 @@ function sendpulse_sync(
     string $op_id, string $booking_id,
     string $visitor_name, string $visitor_email, string $visitor_phone,
     string $worker_name, string $date, string $start_time,
-    string $notes = '', bool $call_requested = false
+    string $notes = '', bool $call_requested = false,
+    float $amount_paid = 0.0, string $currency = ''
 ): void {
     try {
         $s       = get_op_settings($op_id);
@@ -396,6 +414,12 @@ function sendpulse_sync(
         if ($deal_id && $call_requested) {
             try { sp_call('POST', "/crm/v1/deals/$deal_id/comments", ['message' => "☎️ Call requested: +$visitor_phone"], $tok); }
             catch (Throwable $e) { error_log("SendPulse call comment error: " . $e->getMessage()); }
+        }
+        if ($deal_id && $amount_paid > 0) {
+            $cur_label = $currency ?: 'USD';
+            $paid_note = "Paid: " . number_format($amount_paid, 2) . " $cur_label";
+            try { sp_call('POST', "/crm/v1/deals/$deal_id/comments", ['message' => $paid_note], $tok); }
+            catch (Throwable $e) { error_log("SendPulse paid comment error: " . $e->getMessage()); }
         }
 
         if ($contact_id !== null || $deal_id !== null) {
@@ -476,8 +500,9 @@ function r_workers_create(): void {
     $wid  = uuid4();
     $now  = utcnow();
     $db   = get_db();
-    $db->prepare('INSERT INTO workers (id, operator_id, name, title, bio, created_at) VALUES (?,?,?,?,?,?)')
-       ->execute([$wid, $op['id'], $name, $b['title'] ?? '', $b['bio'] ?? '', $now]);
+    $db->prepare('INSERT INTO workers (id, operator_id, name, title, bio, booking_price, payment_required, created_at) VALUES (?,?,?,?,?,?,?,?)')
+       ->execute([$wid, $op['id'], $name, $b['title'] ?? '', $b['bio'] ?? '',
+                  (float)($b['booking_price'] ?? 0), (int)($b['payment_required'] ?? 0), $now]);
     $row = $db->prepare('SELECT * FROM workers WHERE id=?');
     $row->execute([$wid]);
     json_ok($row->fetch(), 201);
@@ -492,12 +517,14 @@ function r_workers_update(string $wid): void {
     $st->execute([$wid, $op['id']]);
     $cur = $st->fetch();
     if (!$cur) json_err('Not found', 404);
-    $db->prepare('UPDATE workers SET name=?, title=?, bio=?, is_active=? WHERE id=?')
+    $db->prepare('UPDATE workers SET name=?, title=?, bio=?, is_active=?, booking_price=?, payment_required=? WHERE id=?')
        ->execute([
            $b['name']      ?? $cur['name'],
            $b['title']     ?? $cur['title'],
            $b['bio']       ?? $cur['bio'],
            (int)($b['is_active'] ?? $cur['is_active']),
+           array_key_exists('booking_price', $b)    ? (float)$b['booking_price']    : (float)$cur['booking_price'],
+           array_key_exists('payment_required', $b) ? (int)$b['payment_required']   : (int)$cur['payment_required'],
            $wid,
        ]);
     $st2 = $db->prepare('SELECT * FROM workers WHERE id=?');
@@ -671,15 +698,26 @@ function r_settings_get(): void {
     $op = require_operator();
     $s  = get_op_settings($op['id']);
     json_ok([
-        'sp_client_id'      => $s['sp_client_id']      ?? '',
-        'sp_pipeline_id'    => $s['sp_pipeline_id']    ?? '',
-        'sp_step_id'        => $s['sp_step_id']        ?? '',
-        'sp_responsible_id' => $s['sp_responsible_id'] ?? '',
-        'sp_has_secret'     => (bool)trim($s['sp_client_secret'] ?? ''),
-        'sms_enabled'       => $s['sms_enabled']   ?? '0',
-        'sms_sender_id'     => $s['sms_sender_id'] ?? '',
-        'public_url'        => $s['public_url']    ?? '',
-        'operator_id'       => $op['id'],
+        'sp_client_id'           => $s['sp_client_id']           ?? '',
+        'sp_pipeline_id'         => $s['sp_pipeline_id']         ?? '',
+        'sp_step_id'             => $s['sp_step_id']             ?? '',
+        'sp_responsible_id'      => $s['sp_responsible_id']      ?? '',
+        'sp_has_secret'          => (bool)trim($s['sp_client_secret'] ?? ''),
+        'sms_enabled'            => $s['sms_enabled']            ?? '0',
+        'sms_sender_id'          => $s['sms_sender_id']          ?? '',
+        'public_url'             => $s['public_url']             ?? '',
+        'operator_id'            => $op['id'],
+        // ── payment settings ────────────────────────────────────────────────
+        'payment_test_mode'      => $s['payment_test_mode']      ?? '0',
+        'stripe_enabled'         => $s['stripe_enabled']         ?? '0',
+        'stripe_publishable_key' => $s['stripe_publishable_key'] ?? '',
+        'stripe_has_secret'      => (bool)trim($s['stripe_secret_key'] ?? ''),
+        'liqpay_enabled'         => $s['liqpay_enabled']         ?? '0',
+        'liqpay_public_key'      => $s['liqpay_public_key']      ?? '',
+        'liqpay_has_private'     => (bool)trim($s['liqpay_private_key'] ?? ''),
+        'google_pay_enabled'     => $s['google_pay_enabled']     ?? '0',
+        'google_pay_merchant_id' => $s['google_pay_merchant_id'] ?? '',
+        'payment_currency'       => $s['payment_currency']       ?? 'USD',
     ]);
 }
 
@@ -690,7 +728,12 @@ function r_settings_save(): void {
     $db   = get_db();
     $keys = ['sp_client_id','sp_client_secret','sp_pipeline_id','sp_step_id','sp_responsible_id',
              'wgt_primary','wgt_gradient','wgt_font','wgt_radius','wgt_view',
-             'wgt_bg','wgt_text','wgt_shadow','sms_enabled','sms_sender_id','public_url'];
+             'wgt_bg','wgt_text','wgt_shadow','sms_enabled','sms_sender_id','public_url',
+             // payment keys
+             'payment_test_mode','payment_currency',
+             'stripe_enabled','stripe_publishable_key','stripe_secret_key',
+             'liqpay_enabled','liqpay_public_key','liqpay_private_key',
+             'google_pay_enabled','google_pay_merchant_id'];
     $ins  = $db->prepare(
         'INSERT INTO settings (id, operator_id, key, value) VALUES (?,?,?,?)
          ON CONFLICT(operator_id, key) DO UPDATE SET value=excluded.value');
@@ -834,34 +877,102 @@ function _resolve_operator_id(): ?string {
 
 // POST /api/widget/bookings
 function r_w_booking_create(): void {
-    $b    = body();
-    $aid  = $b['availabilityId'] ?? null;
-    $name = trim($b['visitorName']  ?? '');
-    $email= trim($b['visitorEmail'] ?? '');
+    $b     = body();
+    $aid   = $b['availabilityId'] ?? null;
+    $name  = trim($b['visitorName']  ?? '');
+    $email = trim($b['visitorEmail'] ?? '');
     if (!$aid || !$name || !$email) json_err('availabilityId, visitorName, visitorEmail required');
-    $db   = get_db();
-    $st   = $db->prepare(
-        'SELECT a.*, w.name AS worker_name, w.operator_id FROM availability a
+    $db    = get_db();
+    $st    = $db->prepare(
+        'SELECT a.*, w.name AS worker_name, w.operator_id,
+                w.booking_price, w.payment_required
+         FROM availability a
          JOIN workers w ON w.id=a.worker_id
          WHERE a.id=? AND a.is_booked=0');
     $st->execute([$aid]);
     $slot = $st->fetch();
     if (!$slot) json_err('Slot not available or already booked', 409);
-    $bid  = uuid4();
-    $now  = utcnow();
+
+    $price            = (float)($slot['booking_price']    ?? 0);
+    $payment_required = (int)  ($slot['payment_required'] ?? 0);
+    $amount_paid      = 0.0;
+    $payment_id_saved = '';
+    $currency_saved   = '';
+    $op_settings      = get_op_settings($slot['operator_id']);
+
+    if ($payment_required && $price > 0) {
+        $payment_id = trim($b['paymentId'] ?? '');
+        if (!$payment_id) json_err('Payment required for this booking. Please complete payment first.');
+
+        $currency_saved = strtoupper($op_settings['payment_currency'] ?? 'USD');
+
+        // ── Test mode ──────────────────────────────────────────────────────
+        if ($payment_id === 'test_mode') {
+            if (($op_settings['payment_test_mode'] ?? '0') !== '1') {
+                json_err('Test mode payment not accepted — enable Test Mode in payment settings');
+            }
+            $amount_paid      = $price;
+            $payment_id_saved = 'test_mode';
+
+        // ── Stripe PaymentIntent ───────────────────────────────────────────
+        } elseif (str_starts_with($payment_id, 'pi_')) {
+            if (($op_settings['stripe_enabled'] ?? '0') !== '1') json_err('Stripe not enabled');
+            $sk = trim($op_settings['stripe_secret_key'] ?? '');
+            if (!$sk) json_err('Stripe not configured');
+
+            $ch = curl_init("https://api.stripe.com/v1/payment_intents/" . urlencode($payment_id));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_USERPWD, "$sk:");
+            $resp = curl_exec($ch);
+            curl_close($ch);
+            $pi = json_decode($resp, true) ?? [];
+            if (($pi['status'] ?? '') !== 'succeeded') {
+                json_err('Payment not completed (status: ' . ($pi['status'] ?? 'unknown') . '). Please try again.');
+            }
+            $amount_paid      = (float)($pi['amount'] ?? 0) / 100;
+            $currency_saved   = strtoupper($pi['currency'] ?? $currency_saved);
+            $payment_id_saved = $payment_id;
+
+        // ── LiqPay ────────────────────────────────────────────────────────
+        } elseif (!empty($b['liqpayData'])) {
+            if (($op_settings['liqpay_enabled'] ?? '0') !== '1') json_err('LiqPay not enabled');
+            $private_key = trim($op_settings['liqpay_private_key'] ?? '');
+            if (!$private_key) json_err('LiqPay not configured');
+
+            $liqpay_data = $b['liqpayData']      ?? '';
+            $liqpay_sig  = $b['liqpaySignature'] ?? '';
+            $expected    = base64_encode(sha1($private_key . $liqpay_data . $private_key, true));
+            if (!hash_equals($expected, $liqpay_sig)) json_err('Invalid LiqPay signature');
+
+            $decoded = json_decode(base64_decode($liqpay_data), true) ?? [];
+            if (($decoded['status'] ?? '') !== 'success') {
+                json_err('LiqPay payment not successful (status: ' . ($decoded['status'] ?? 'unknown') . ')');
+            }
+            $amount_paid      = (float)($decoded['amount']   ?? $price);
+            $currency_saved   = strtoupper($decoded['currency'] ?? $currency_saved);
+            $payment_id_saved = $decoded['payment_id'] ?? 'liqpay_' . uuid4();
+
+        } else {
+            json_err('Unknown or missing payment method');
+        }
+    }
+
+    $bid = uuid4();
+    $now = utcnow();
     $db->prepare('UPDATE availability SET is_booked=1 WHERE id=?')->execute([$aid]);
     $db->prepare(
-        'INSERT INTO bookings (id,worker_id,availability_id,visitor_name,visitor_email,visitor_phone,notes,created_at)
-         VALUES (?,?,?,?,?,?,?,?)')
+        'INSERT INTO bookings (id,worker_id,availability_id,visitor_name,visitor_email,visitor_phone,notes,amount_paid,payment_id,currency,created_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)')
        ->execute([$bid, $slot['worker_id'], $aid, $name, $email,
-                  $b['visitorPhone'] ?? '', $b['notes'] ?? '', $now]);
+                  $b['visitorPhone'] ?? '', $b['notes'] ?? '',
+                  $amount_paid, $payment_id_saved, $currency_saved, $now]);
     $row = $db->prepare('SELECT * FROM bookings WHERE id=?');
     $row->execute([$bid]);
     $booking = $row->fetch();
-    // Sync to CRM asynchronously (best-effort, no true async in PHP CLI server)
     sendpulse_sync($slot['operator_id'], $bid, $name, $email,
                    $b['visitorPhone'] ?? '', $slot['worker_name'],
-                   $slot['date'], $slot['start_time'], $b['notes'] ?? '');
+                   $slot['date'], $slot['start_time'], $b['notes'] ?? '', false,
+                   $amount_paid, $currency_saved);
     json_ok($booking, 201);
 }
 
@@ -1097,6 +1208,177 @@ function r_admin_operators_update(string $op_id): void {
     json_ok($st2->fetch());
 }
 
+// DELETE /api/admin/operators/:id  (hard delete — disabled only)
+function r_admin_operators_delete(string $op_id): void {
+    require_admin();
+    $db = get_db();
+    $st = $db->prepare('SELECT id, is_active FROM operators WHERE id=?');
+    $st->execute([$op_id]);
+    $op = $st->fetch();
+    if (!$op) json_err('Operator not found', 404);
+    if ($op['is_active']) json_err('Cannot delete an active operator. Disable it first.', 409);
+
+    $db->beginTransaction();
+    try {
+        $db->prepare('DELETE FROM pending_bookings WHERE avail_id IN
+            (SELECT a.id FROM availability a JOIN workers w ON w.id=a.worker_id WHERE w.operator_id=?)')
+           ->execute([$op_id]);
+        $db->prepare('DELETE FROM bookings WHERE worker_id IN (SELECT id FROM workers WHERE operator_id=?)')
+           ->execute([$op_id]);
+        $db->prepare('DELETE FROM availability WHERE worker_id IN (SELECT id FROM workers WHERE operator_id=?)')
+           ->execute([$op_id]);
+        $db->prepare('DELETE FROM workers WHERE operator_id=?')->execute([$op_id]);
+        $db->prepare('DELETE FROM settings WHERE operator_id=?')->execute([$op_id]);
+        $db->prepare('DELETE FROM operators WHERE id=?')->execute([$op_id]);
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        json_err('Delete failed: ' . $e->getMessage(), 500);
+    }
+    json_ok(['ok' => true]);
+}
+
+// POST /api/admin/cleanup-disabled
+function r_admin_cleanup_disabled(): void {
+    require_admin();
+    $db  = get_db();
+    $ids = $db->query("SELECT id FROM operators WHERE is_active=0")->fetchAll(PDO::FETCH_COLUMN);
+    if (!$ids) { json_ok(['deleted' => 0]); return; }
+
+    $db->beginTransaction();
+    try {
+        foreach ($ids as $oid) {
+            $db->prepare('DELETE FROM pending_bookings WHERE avail_id IN
+                (SELECT a.id FROM availability a JOIN workers w ON w.id=a.worker_id WHERE w.operator_id=?)')
+               ->execute([$oid]);
+            $db->prepare('DELETE FROM bookings WHERE worker_id IN (SELECT id FROM workers WHERE operator_id=?)')
+               ->execute([$oid]);
+            $db->prepare('DELETE FROM availability WHERE worker_id IN (SELECT id FROM workers WHERE operator_id=?)')
+               ->execute([$oid]);
+            $db->prepare('DELETE FROM workers WHERE operator_id=?')->execute([$oid]);
+            $db->prepare('DELETE FROM settings WHERE operator_id=?')->execute([$oid]);
+        }
+        $db->prepare("DELETE FROM operators WHERE is_active=0")->execute();
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        json_err('Cleanup failed: ' . $e->getMessage(), 500);
+    }
+    json_ok(['deleted' => count($ids)]);
+}
+
+// GET /api/payment/config  (public — no auth, widget uses this)
+function r_payment_config(): void {
+    $op_id = _resolve_operator_id();
+    if (!$op_id) json_err('Operator not found', 404);
+    $s = get_op_settings($op_id);
+    json_ok([
+        'testMode'             => ($s['payment_test_mode']   ?? '0') === '1',
+        'stripeEnabled'        => ($s['stripe_enabled']      ?? '0') === '1',
+        'stripePublishableKey' => $s['stripe_publishable_key'] ?? '',
+        'liqpayEnabled'        => ($s['liqpay_enabled']      ?? '0') === '1',
+        'liqpayPublicKey'      => $s['liqpay_public_key']    ?? '',
+        'googlePayEnabled'     => ($s['google_pay_enabled']  ?? '0') === '1',
+        'googlePayMerchantId'  => $s['google_pay_merchant_id'] ?? '',
+        'currency'             => $s['payment_currency']     ?? 'USD',
+    ]);
+}
+
+// POST /api/payment/stripe/intent
+function r_payment_stripe_intent(): void {
+    $b   = body();
+    $wid = $b['workerId'] ?? null;
+    $op_id = _resolve_operator_id();
+    if (!$op_id) json_err('Operator not found', 404);
+    if (!$wid) json_err('workerId required');
+
+    $db = get_db();
+    $st = $db->prepare('SELECT booking_price, payment_required FROM workers WHERE id=? AND is_active=1');
+    $st->execute([$wid]);
+    $worker = $st->fetch();
+    if (!$worker) json_err('Worker not found', 404);
+    if (!$worker['payment_required']) json_err('Payment not required for this worker');
+
+    $s  = get_op_settings($op_id);
+    if (($s['stripe_enabled'] ?? '0') !== '1') json_err('Stripe not enabled');
+    $sk = trim($s['stripe_secret_key'] ?? '');
+    if (!$sk) json_err('Stripe not configured');
+
+    $price    = (float)$worker['booking_price'];
+    $amount   = (int)round($price * 100);       // Stripe amounts in smallest currency unit
+    $currency = strtolower($s['payment_currency'] ?? 'usd');
+
+    $ch = curl_init('https://api.stripe.com/v1/payment_intents');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_USERPWD, "$sk:");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+        'amount'                    => $amount,
+        'currency'                  => $currency,
+        'payment_method_types[]'    => 'card',
+    ]));
+    $resp   = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $pi = json_decode($resp, true) ?? [];
+    if ($status >= 400) json_err($pi['error']['message'] ?? "Stripe error: $resp", 502);
+
+    json_ok([
+        'clientSecret'     => $pi['client_secret'],
+        'paymentIntentId'  => $pi['id'],
+        'amount'           => $amount,
+        'currency'         => strtoupper($currency),
+    ]);
+}
+
+// POST /api/payment/liqpay/form  (returns data+signature for widget)
+function r_payment_liqpay_form(): void {
+    $b   = body();
+    $wid = $b['workerId'] ?? null;
+    $op_id = _resolve_operator_id();
+    if (!$op_id) json_err('Operator not found', 404);
+    if (!$wid) json_err('workerId required');
+
+    $db = get_db();
+    $st = $db->prepare('SELECT booking_price, payment_required FROM workers WHERE id=? AND is_active=1');
+    $st->execute([$wid]);
+    $worker = $st->fetch();
+    if (!$worker) json_err('Worker not found', 404);
+    if (!$worker['payment_required']) json_err('Payment not required');
+
+    $s           = get_op_settings($op_id);
+    if (($s['liqpay_enabled'] ?? '0') !== '1') json_err('LiqPay not enabled');
+    $public_key  = trim($s['liqpay_public_key']  ?? '');
+    $private_key = trim($s['liqpay_private_key'] ?? '');
+    if (!$public_key || !$private_key) json_err('LiqPay not configured');
+
+    $price    = (float)$worker['booking_price'];
+    $currency = strtoupper($s['payment_currency'] ?? 'USD');
+    $order_id = 'booking_' . uuid4();
+
+    $params = [
+        'version'     => '3',
+        'public_key'  => $public_key,
+        'action'      => 'pay',
+        'amount'      => (string)$price,
+        'currency'    => $currency,
+        'description' => 'Booking payment',
+        'order_id'    => $order_id,
+    ];
+
+    $data      = base64_encode(json_encode($params));
+    $signature = base64_encode(sha1($private_key . $data . $private_key, true));
+
+    json_ok([
+        'data'      => $data,
+        'signature' => $signature,
+        'orderId'   => $order_id,
+        'amount'    => $price,
+        'currency'  => $currency,
+    ]);
+}
+
 // Tunnel stubs (no-op in PHP version)
 function r_tunnel_status(): void { json_ok(['status' => 'stopped', 'url' => null, 'error' => 'Tunnel not supported in PHP server']); }
 function r_tunnel_start(): void  { json_ok(['ok' => false, 'error' => 'Tunnel not supported in PHP server']); }
@@ -1135,6 +1417,7 @@ if ($method === 'GET') {
         $path === '/api/tunnel/status'         => r_tunnel_status(),
         $path === '/api/admin/operators'       => r_admin_operators_list(),
         $path === '/api/admin/stats'           => r_admin_stats(),
+        $path === '/api/payment/config'        => r_payment_config(),
         $path === '/api/verify'                => r_verify(),
         default                                => serve_page($path),
     };
@@ -1151,11 +1434,14 @@ elseif ($method === 'POST') {
         '/api/widget/send-code'       => r_w_send_code(),
         '/api/widget/verify-code'     => r_w_verify_code(),
         '/api/widget/request-call'    => r_w_request_call(),
-        '/api/tunnel/start'           => r_tunnel_start(),
-        '/api/tunnel/stop'            => r_tunnel_stop(),
-        '/api/register'               => r_register(),
-        '/api/admin/operators'        => r_admin_operators_create(),
-        default                       => json_err('Not found', 404),
+        '/api/tunnel/start'              => r_tunnel_start(),
+        '/api/tunnel/stop'               => r_tunnel_stop(),
+        '/api/register'                  => r_register(),
+        '/api/admin/operators'           => r_admin_operators_create(),
+        '/api/admin/cleanup-disabled'    => r_admin_cleanup_disabled(),
+        '/api/payment/stripe/intent'     => r_payment_stripe_intent(),
+        '/api/payment/liqpay/form'       => r_payment_liqpay_form(),
+        default                          => json_err('Not found', 404),
     };
 }
 
@@ -1174,6 +1460,8 @@ elseif ($method === 'DELETE') {
         r_workers_delete(substr($path, strlen('/api/workers/')));
     } elseif (str_starts_with($path, '/api/availability/')) {
         r_avail_delete(substr($path, strlen('/api/availability/')));
+    } elseif (str_starts_with($path, '/api/admin/operators/')) {
+        r_admin_operators_delete(substr($path, strlen('/api/admin/operators/')));
     } else {
         json_err('Not found', 404);
     }

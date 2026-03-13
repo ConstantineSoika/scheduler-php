@@ -73,6 +73,30 @@
     .btn-disable:hover  { background: #ffedd5; }
     .btn-enable   { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
     .btn-enable:hover   { background: #dcfce7; }
+    .btn-delete   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .btn-delete:hover   { background: #fecaca; }
+    .btn-cleanup  { background: #fff; color: #991b1b; border: 1px solid #fca5a5; border-radius: 7px;
+                    padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-cleanup:hover  { background: #fee2e2; }
+
+    /* ── Confirmation Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45);
+                     display: flex; align-items: center; justify-content: center;
+                     z-index: 9999; padding: 20px; }
+    .modal-box { background: #fff; border-radius: 12px; padding: 28px 24px 24px;
+                 max-width: 400px; width: 100%;
+                 box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+    .modal-box h3 { font-size: 16px; margin: 0 0 8px; color: #1e293b; }
+    .modal-box p  { font-size: 13px; color: #475569; margin: 0 0 20px; line-height: 1.55; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-btn-cancel { padding: 8px 16px; background: #f1f5f9; color: #334155;
+                        border: none; border-radius: 7px; font-size: 13px;
+                        font-weight: 600; cursor: pointer; }
+    .modal-btn-cancel:hover { background: #e2e8f0; }
+    .modal-btn-danger { padding: 8px 16px; background: #dc2626; color: #fff;
+                        border: none; border-radius: 7px; font-size: 13px;
+                        font-weight: 700; cursor: pointer; }
+    .modal-btn-danger:hover { background: #b91c1c; }
 
     .empty { text-align: center; padding: 32px; color: #94a3b8; font-size: 14px; }
     .msg { padding: 9px 13px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
@@ -126,11 +150,26 @@
     <div class="stat-card"><div class="stat-val" id="stat-bookings">—</div><div class="stat-lbl">Total bookings</div></div>
   </div>
 
+  <!-- Confirmation Modal (shared) -->
+  <div class="modal-overlay" id="confirm-modal" hidden>
+    <div class="modal-box">
+      <h3 id="modal-title">Confirm action</h3>
+      <p id="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-btn-danger" id="modal-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Operators table -->
   <div class="card">
     <div class="card-hdr">
       <h2>Operators</h2>
-      <button class="btn-sm btn-enable" id="btn-show-create" style="border-radius:7px;padding:6px 14px;font-size:13px">+ New operator</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-cleanup" id="btn-cleanup-disabled" title="Permanently delete all disabled operators">🗑 Delete All Disabled</button>
+        <button class="btn-sm btn-enable" id="btn-show-create" style="border-radius:7px;padding:6px 14px;font-size:13px">+ New operator</button>
+      </div>
     </div>
 
     <!-- Create operator form (hidden by default) -->
@@ -159,9 +198,10 @@
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     return fetch(path, opts).then(function(r) { return r.json(); });
   }
-  var aGet   = function(p)    { return apiAdmin('GET',   p); };
-  var aPost  = function(p, b) { return apiAdmin('POST',  p, b); };
-  var aPatch = function(p, b) { return apiAdmin('PATCH', p, b); };
+  var aGet    = function(p)    { return apiAdmin('GET',    p); };
+  var aPost   = function(p, b) { return apiAdmin('POST',  p, b); };
+  var aPatch  = function(p, b) { return apiAdmin('PATCH', p, b); };
+  var aDelete = function(p)    { return apiAdmin('DELETE', p); };
 
   function showMsg(text, ok) {
     var bar = document.getElementById('msg-bar');
@@ -264,10 +304,11 @@
           '<td><span class="badge ' + (active ? 'badge-green' : 'badge-red') + '">' +
             (active ? 'Active' : 'Disabled') + '</span></td>' +
           '<td style="color:#64748b;font-size:12px">' + esc((op.created_at || '').slice(0,10)) + '</td>' +
-          '<td>' +
+          '<td style="display:flex;gap:6px">' +
             (active
               ? '<button class="btn-sm btn-disable" onclick="toggleOp(\'' + op.id + '\', 0)">Disable</button>'
-              : '<button class="btn-sm btn-enable"  onclick="toggleOp(\'' + op.id + '\', 1)">Enable</button>'
+              : '<button class="btn-sm btn-enable"  onclick="toggleOp(\'' + op.id + '\', 1)">Enable</button>' +
+                '<button class="btn-sm btn-delete"  onclick="confirmDeleteOp(\'' + op.id + '\',\'' + esc(op.name) + '\')">Delete</button>'
             ) +
           '</td>' +
         '</tr>';
@@ -279,6 +320,66 @@
         '<div class="empty">Failed to load operators.</div>';
     });
   }
+
+  // ── Confirmation Modal ──────────────────────────────────────────────────────
+  var _modalCallback = null;
+
+  function showModal(title, body, confirmLabel, callback) {
+    document.getElementById('modal-title').textContent   = title;
+    document.getElementById('modal-body').textContent    = body;
+    document.getElementById('modal-confirm').textContent = confirmLabel || 'Delete';
+    _modalCallback = callback;
+    document.getElementById('confirm-modal').hidden = false;
+  }
+
+  document.getElementById('modal-cancel').addEventListener('click', function() {
+    document.getElementById('confirm-modal').hidden = true;
+    _modalCallback = null;
+  });
+
+  document.getElementById('modal-confirm').addEventListener('click', function() {
+    document.getElementById('confirm-modal').hidden = true;
+    if (_modalCallback) { _modalCallback(); _modalCallback = null; }
+  });
+
+  // Close on overlay click
+  document.getElementById('confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) { this.hidden = true; _modalCallback = null; }
+  });
+
+  // ── Delete operator ─────────────────────────────────────────────────────────
+  window.confirmDeleteOp = function(id, name) {
+    showModal(
+      'Delete operator "' + name + '"?',
+      'This will permanently delete the operator, all their workers, availability slots, bookings, and settings. This action cannot be undone.',
+      'Delete permanently',
+      function() {
+        aDelete('/api/admin/operators/' + id).then(function(r) {
+          if (r.error) { showMsg(r.error, false); return; }
+          showMsg('Operator "' + name + '" deleted ✓', true);
+          loadOperators();
+          loadStats();
+        });
+      }
+    );
+  };
+
+  // ── Clean up all disabled ───────────────────────────────────────────────────
+  document.getElementById('btn-cleanup-disabled').addEventListener('click', function() {
+    showModal(
+      'Delete all disabled operators?',
+      'This will permanently delete every disabled operator and all their data (workers, availability, bookings). This cannot be undone.',
+      'Delete all disabled',
+      function() {
+        aPost('/api/admin/cleanup-disabled').then(function(r) {
+          if (r.error) { showMsg(r.error, false); return; }
+          showMsg('Deleted ' + (r.deleted || 0) + ' disabled operator(s) ✓', true);
+          loadOperators();
+          loadStats();
+        });
+      }
+    );
+  });
 
   window.toggleOp = function(id, active) {
     aPatch('/api/admin/operators/' + id, { is_active: active }).then(function(r) {

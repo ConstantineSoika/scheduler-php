@@ -25,6 +25,22 @@
     shadowIntensity: 'default',
   };
 
+  // ── Payment config (loaded from /api/payment/config) ────────────────────────
+  var paymentCfg = {
+    testMode:             false,
+    stripeEnabled:        false,
+    stripePublishableKey: '',
+    liqpayEnabled:        false,
+    liqpayPublicKey:      '',
+    googlePayEnabled:     false,
+    googlePayMerchantId:  '',
+    currency:             'USD',
+  };
+
+  // Stripe instance (set after Stripe.js loads)
+  var _stripe      = null;
+  var _cardElement = null;
+
   // ── Apply CSS custom properties from config ──────────────────────────────────
   function applyCfg() {
     var fontMap = {
@@ -166,6 +182,23 @@
     '.spw-new{margin-top:18px;padding:9px 22px;background:#F4F6FF;border:1.5px solid #E0E5F2;border-radius:var(--spw-r-sm,8px);cursor:pointer;font-size:13px;font-weight:600;color:#1C1C28;transition:all .12s}',
     '.spw-new:hover{border-color:var(--spw-primary);color:var(--spw-primary);background:var(--spw-primary-lt)}',
 
+    // Payment step
+    '.spw-payment{padding:4px 0}',
+    '.spw-price-badge{text-align:center;margin-bottom:18px}',
+    '.spw-price-amount{font-size:28px;font-weight:800;color:#1C1C28;letter-spacing:-.02em}',
+    '.spw-price-label{font-size:12px;color:#6B7A99;margin-top:2px}',
+    '.spw-pay-methods{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}',
+    '.spw-pay-btn{width:100%;padding:12px;border:1.5px solid #E0E5F2;border-radius:var(--spw-r-sm,8px);background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#1C1C28;text-align:center;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:8px}',
+    '.spw-pay-btn:hover{border-color:var(--spw-primary,#2863E0);box-shadow:0 0 0 3px var(--spw-primary-lt)}',
+    '.spw-pay-btn:disabled{opacity:.55;cursor:not-allowed}',
+    '.spw-pay-btn-primary{background:var(--spw-primary,#2863E0);color:#fff;border-color:var(--spw-primary,#2863E0)}',
+    '.spw-pay-btn-primary:hover{background:var(--spw-primary-dk,#1E4FC2);border-color:var(--spw-primary-dk,#1E4FC2)}',
+    '.spw-pay-btn-test{background:#fffbeb;color:#92400e;border-color:#fef08a}',
+    '.spw-pay-btn-test:hover{background:#fef9c3;border-color:#fde047}',
+    '.spw-stripe-wrap{margin-bottom:12px}',
+    '.spw-stripe-el{padding:10px 12px;border:1.5px solid #E0E5F2;border-radius:var(--spw-r-sm,8px);background:#fff;min-height:42px;transition:border-color .12s}',
+    '.spw-stripe-el.focused{border-color:var(--spw-primary,#2863E0);box-shadow:0 0 0 3px var(--spw-primary-lt)}',
+
     // Verify / OTP step
     '.spw-verify{text-align:center;padding:4px 0}',
     '.spw-verify-phone{font-size:13px;color:#6B7A99;margin-bottom:18px}',
@@ -192,7 +225,7 @@
 
   // ── State ─────────────────────────────────────────────────────────────────
   var s = {
-    step:        'loading',  // loading | calendar | week | workers | slots | form | verify | confirmed
+    step:        'loading',  // loading | calendar | week | workers | slots | form | payment | verify | confirmed
     year:        0,
     month:       0,
     weekBase:    null,       // Date object: Monday of displayed week (week mode)
@@ -263,6 +296,7 @@
     workers:   'Choose a Specialist',
     slots:     'Choose a Time',
     form:      'Your Details',
+    payment:   'Complete Payment',
     verify:    'Confirm Your Phone',
     confirmed: 'Booking Confirmed',
   };
@@ -278,6 +312,7 @@
     else if (s.step === 'workers')   b.appendChild(renderWorkers());
     else if (s.step === 'slots')     b.appendChild(renderSlots());
     else if (s.step === 'form')      b.appendChild(renderForm());
+    else if (s.step === 'payment')   b.appendChild(renderPayment());
     else if (s.step === 'verify')    b.appendChild(renderVerify());
     else if (s.step === 'confirmed') b.appendChild(renderConfirmed());
     w.appendChild(b);
@@ -293,7 +328,7 @@
 
   function renderHeader() {
     var hdr  = el('div', 'spw-hdr');
-    var back = ['workers','slots','form','verify'].indexOf(s.step) >= 0;
+    var back = ['workers','slots','form','payment','verify'].indexOf(s.step) >= 0;
     if (back) {
       var b = el('button', 'spw-back', '←');
       b.title   = 'Back';
@@ -309,7 +344,7 @@
 
   function goBack() {
     var calStep = cfg.viewMode === 'week' ? 'week' : 'calendar';
-    var prev = { workers: calStep, slots: 'workers', form: 'slots', verify: 'form' };
+    var prev = { workers: calStep, slots: 'workers', form: 'slots', payment: 'form', verify: 'form' };
     s.step = prev[s.step] || calStep;
     render();
   }
@@ -633,6 +668,15 @@
       notes:          form.querySelector('[name=notes]').value,
     };
 
+    // If payment required → go to payment step first
+    var price = parseFloat(s.worker.booking_price) || 0;
+    if (s.worker.payment_required && price > 0) {
+      s.formData = data;
+      s.step     = 'payment';
+      render();
+      return;
+    }
+
     // If SMS is enabled and the phone looks Ukrainian → go through OTP flow
     if (cfg.smsEnabled && data.visitorPhone && isUkrPhone(data.visitorPhone)) {
       btn.disabled    = true;
@@ -801,6 +845,303 @@
     });
   }
 
+  // ── Payment step ───────────────────────────────────────────────────────────
+  function renderPayment() {
+    var wrap  = el('div', 'spw-payment');
+    var price = parseFloat(s.worker.booking_price) || 0;
+    var cur   = paymentCfg.currency || 'USD';
+
+    // Summary pill
+    var sum = el('p', 'spw-sum');
+    sum.innerHTML = '📅 <strong>' + fmtDate(s.date) + '</strong>' +
+                    ' at <strong>' + s.slot.start_time + '</strong>' +
+                    ' with <strong>' + s.worker.name + '</strong>';
+    wrap.appendChild(sum);
+
+    // Price badge
+    var badge = el('div', 'spw-price-badge');
+    badge.appendChild(el('div', 'spw-price-amount', cur + ' ' + price.toFixed(2)));
+    badge.appendChild(el('div', 'spw-price-label', 'Due now to confirm your booking'));
+    wrap.appendChild(badge);
+
+    var methods = el('div', 'spw-pay-methods');
+    var errEl   = el('p', 'spw-err');
+    errEl.id    = 'spw-perr';
+
+    // ── Test mode ─────────────────────────────────────────────────────────
+    if (paymentCfg.testMode) {
+      var testBtn = el('button', 'spw-pay-btn spw-pay-btn-test',
+                       '🧪 Pay ' + price.toFixed(2) + ' ' + cur + ' (Test Mode)');
+      testBtn.type = 'button';
+      testBtn.onclick = (function(tb) {
+        return function() {
+          tb.disabled    = true;
+          tb.textContent = 'Processing…';
+          errEl.textContent = '';
+          doBooking('test_mode', price, cur, tb, errEl);
+        };
+      })(testBtn);
+      methods.appendChild(testBtn);
+    }
+
+    // ── Stripe card ───────────────────────────────────────────────────────
+    if (!paymentCfg.testMode && paymentCfg.stripeEnabled && paymentCfg.stripePublishableKey) {
+      var stripeWrap = el('div', 'spw-stripe-wrap');
+      var stripeDiv  = el('div', 'spw-stripe-el');
+      stripeDiv.id   = 'spw-stripe-element';
+      stripeWrap.appendChild(stripeDiv);
+      methods.appendChild(stripeWrap);
+
+      var stripeBtn = el('button', 'spw-pay-btn spw-pay-btn-primary',
+                         '💳 Pay with Card · ' + price.toFixed(2) + ' ' + cur);
+      stripeBtn.type = 'button';
+      stripeBtn.id   = 'spw-stripe-pay-btn';
+      (function(sb, p, c) {
+        sb.onclick = function() { submitStripePayment(p, c, sb, errEl); };
+      })(stripeBtn, price, cur);
+      methods.appendChild(stripeBtn);
+
+      // Mount card element once the DOM node exists
+      setTimeout(function() { mountStripeCard(); }, 50);
+    }
+
+    // ── LiqPay ────────────────────────────────────────────────────────────
+    if (!paymentCfg.testMode && paymentCfg.liqpayEnabled) {
+      var liqBtn = el('button', 'spw-pay-btn',
+                      '🇺🇦 Pay with LiqPay · ' + price.toFixed(2) + ' ' + cur);
+      liqBtn.type = 'button';
+      (function(lb, p, c) {
+        lb.onclick = function() { submitLiqpay(p, c, lb, errEl); };
+      })(liqBtn, price, cur);
+      methods.appendChild(liqBtn);
+    }
+
+    // ── Google Pay (via Stripe Payment Request) ───────────────────────────
+    if (!paymentCfg.testMode && paymentCfg.googlePayEnabled &&
+        paymentCfg.stripeEnabled && paymentCfg.stripePublishableKey) {
+      var gpayDiv = el('div');
+      gpayDiv.id  = 'spw-gpay-btn';
+      methods.appendChild(gpayDiv);
+      setTimeout(function() { mountGooglePay(price, cur, errEl); }, 60);
+    }
+
+    wrap.appendChild(methods);
+    wrap.appendChild(errEl);
+    return wrap;
+  }
+
+  // Dynamically load Stripe.js then call cb()
+  function loadStripeJs(cb) {
+    if (window.Stripe) { cb(); return; }
+    var scr   = document.createElement('script');
+    scr.src   = 'https://js.stripe.com/v3/';
+    scr.async = true;
+    scr.onload = cb;
+    document.head.appendChild(scr);
+  }
+
+  function mountStripeCard() {
+    loadStripeJs(function() {
+      var elDiv = document.getElementById('spw-stripe-element');
+      if (!elDiv) return;
+      try {
+        _stripe      = Stripe(paymentCfg.stripePublishableKey);
+        var elements = _stripe.elements();
+        _cardElement = elements.create('card', {
+          style: {
+            base: {
+              fontSize:    '14px',
+              color:       '#1C1C28',
+              fontFamily:  'system-ui, -apple-system, sans-serif',
+              '::placeholder': { color: '#94A3B8' },
+            },
+            invalid: { color: '#EF4444' },
+          },
+        });
+        _cardElement.mount('#spw-stripe-element');
+        _cardElement.on('focus', function() {
+          var el = document.getElementById('spw-stripe-element');
+          if (el) el.classList.add('focused');
+        });
+        _cardElement.on('blur', function() {
+          var el = document.getElementById('spw-stripe-element');
+          if (el) el.classList.remove('focused');
+        });
+      } catch (e) {
+        console.error('[Widget] Stripe mount failed:', e);
+      }
+    });
+  }
+
+  function submitStripePayment(price, cur, btn, errEl) {
+    if (!_stripe || !_cardElement) {
+      errEl.textContent = 'Card form not ready. Please wait a moment and try again.';
+      return;
+    }
+    btn.disabled    = true;
+    btn.textContent = 'Processing…';
+    errEl.textContent = '';
+
+    var label = '💳 Pay with Card · ' + price.toFixed(2) + ' ' + cur;
+
+    post('/api/payment/stripe/intent', {
+      amount:   Math.round(price * 100),
+      currency: (cur || 'USD').toLowerCase(),
+    }).then(function(res) {
+      if (res.error) {
+        errEl.textContent = res.error;
+        btn.disabled = false; btn.textContent = label;
+        return Promise.resolve(null);
+      }
+      return _stripe.confirmCardPayment(res.clientSecret, {
+        payment_method: { card: _cardElement },
+      });
+    }).then(function(result) {
+      if (!result) return;
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        btn.disabled = false; btn.textContent = label;
+      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        doBooking(result.paymentIntent.id, price, cur, btn, errEl);
+      } else {
+        errEl.textContent = 'Payment not completed. Please try again.';
+        btn.disabled = false; btn.textContent = label;
+      }
+    }).catch(function() {
+      errEl.textContent = 'Payment failed. Please try again.';
+      btn.disabled = false; btn.textContent = label;
+    });
+  }
+
+  function submitLiqpay(price, cur, btn, errEl) {
+    btn.disabled    = true;
+    btn.textContent = 'Redirecting to LiqPay…';
+    errEl.textContent = '';
+
+    var label = '🇺🇦 Pay with LiqPay · ' + price.toFixed(2) + ' ' + cur;
+
+    post('/api/payment/liqpay/form', {
+      amount:      price,
+      currency:    cur || 'UAH',
+      description: 'Booking: ' + s.worker.name + ' on ' + s.date + ' at ' + s.slot.start_time,
+      workerId:    s.worker.id,
+      slotId:      s.slot.id,
+    }).then(function(res) {
+      if (res.error) {
+        errEl.textContent = res.error;
+        btn.disabled = false; btn.textContent = label;
+        return;
+      }
+      // Build and submit a hidden form to LiqPay checkout
+      var lf = document.createElement('form');
+      lf.method = 'POST';
+      lf.action = 'https://www.liqpay.ua/api/3/checkout';
+      lf.target = '_blank';
+      ['data', 'signature'].forEach(function(k) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = k; inp.value = res[k];
+        lf.appendChild(inp);
+      });
+      document.body.appendChild(lf);
+      lf.submit();
+      document.body.removeChild(lf);
+      btn.disabled = false; btn.textContent = label;
+    }).catch(function() {
+      errEl.textContent = 'LiqPay unavailable. Please try again.';
+      btn.disabled = false; btn.textContent = label;
+    });
+  }
+
+  function mountGooglePay(price, cur, errEl) {
+    loadStripeJs(function() {
+      try {
+        if (!_stripe) _stripe = Stripe(paymentCfg.stripePublishableKey);
+        var paymentRequest = _stripe.paymentRequest({
+          country:  'UA',
+          currency: (cur || 'USD').toLowerCase(),
+          total:    { label: 'Booking — ' + s.worker.name, amount: Math.round(price * 100) },
+          requestPayerName:  false,
+          requestPayerEmail: false,
+        });
+        var gpayContainer = document.getElementById('spw-gpay-btn');
+        if (!gpayContainer) return;
+        var elements = _stripe.elements();
+        var prButton = elements.create('paymentRequestButton', {
+          paymentRequest: paymentRequest,
+          style: { paymentRequestButton: { height: '44px' } },
+        });
+
+        paymentRequest.canMakePayment().then(function(result) {
+          if (result && gpayContainer) {
+            prButton.mount('#spw-gpay-btn');
+          } else {
+            if (gpayContainer) gpayContainer.style.display = 'none';
+          }
+        });
+
+        paymentRequest.on('paymentmethod', function(ev) {
+          post('/api/payment/stripe/intent', {
+            amount:   Math.round(price * 100),
+            currency: (cur || 'USD').toLowerCase(),
+          }).then(function(res) {
+            if (res.error) { ev.complete('fail'); errEl.textContent = res.error; return null; }
+            return _stripe.confirmCardPayment(
+              res.clientSecret,
+              { payment_method: ev.paymentMethod.id },
+              { handleActions: false }
+            );
+          }).then(function(confirmResult) {
+            if (!confirmResult) return;
+            if (confirmResult.error) {
+              ev.complete('fail');
+              errEl.textContent = confirmResult.error.message;
+            } else if (confirmResult.paymentIntent.status === 'requires_action') {
+              ev.complete('success');
+              _stripe.confirmCardPayment(confirmResult.paymentIntent.client_secret)
+                .then(function(r) {
+                  if (r.error) errEl.textContent = r.error.message;
+                  else doBooking(r.paymentIntent.id, price, cur, null, errEl);
+                });
+            } else {
+              ev.complete('success');
+              doBooking(confirmResult.paymentIntent.id, price, cur, null, errEl);
+            }
+          }).catch(function() {
+            ev.complete('fail');
+            errEl.textContent = 'Payment failed. Please try again.';
+          });
+        });
+      } catch (e) {
+        console.error('[Widget] Google Pay mount failed:', e);
+      }
+    });
+  }
+
+  // Send booking to server after successful payment (or test mode)
+  function doBooking(paymentId, amountPaid, currency, btn, errEl) {
+    var data = {};
+    // Copy all formData fields
+    var fd = s.formData || {};
+    for (var k in fd) { if (Object.prototype.hasOwnProperty.call(fd, k)) data[k] = fd[k]; }
+    data.paymentId  = paymentId;
+    data.amountPaid = amountPaid;
+    data.currency   = currency;
+
+    post('/api/widget/bookings', data).then(function(res) {
+      if (res.error) {
+        if (errEl) errEl.textContent = res.error;
+        if (btn)   { btn.disabled = false; btn.textContent = 'Retry'; }
+      } else {
+        s.booking = res;
+        s.step    = 'confirmed';
+        render();
+      }
+    }).catch(function() {
+      if (errEl) errEl.textContent = 'Something went wrong. Please try again.';
+      if (btn)   { btn.disabled = false; btn.textContent = 'Retry'; }
+    });
+  }
+
   // ── Confirmed ──────────────────────────────────────────────────────────────
   function renderConfirmed() {
     var wrap = el('div', 'spw-ok');
@@ -826,7 +1167,15 @@
   // ── Bootstrap ──────────────────────────────────────────────────────────────
   render(); // show spinner immediately
 
-  get('/api/widget/config').then(function(c) {
+  // Fetch widget config and payment config in parallel
+  Promise.all([
+    get('/api/widget/config').catch(function() { return {}; }),
+    get('/api/payment/config').catch(function() { return {}; }),
+  ]).then(function(results) {
+    var c = results[0] || {};
+    var p = results[1] || {};
+
+    // Apply widget config
     cfg.primaryColor    = c.primaryColor    || cfg.primaryColor;
     cfg.headerGradient  = (c.headerGradient  !== undefined) ? c.headerGradient  : cfg.headerGradient;
     cfg.fontFamily      = c.fontFamily      || cfg.fontFamily;
@@ -836,7 +1185,22 @@
     cfg.bgColor         = c.bgColor         || cfg.bgColor;
     cfg.textColor       = c.textColor       || cfg.textColor;
     cfg.shadowIntensity = c.shadowIntensity || cfg.shadowIntensity;
-  }).catch(function(){}).then(function() {
+
+    // Apply payment config
+    paymentCfg.testMode             = !!p.testMode;
+    paymentCfg.stripeEnabled        = !!p.stripeEnabled;
+    paymentCfg.stripePublishableKey = p.stripePublishableKey || '';
+    paymentCfg.liqpayEnabled        = !!p.liqpayEnabled;
+    paymentCfg.liqpayPublicKey      = p.liqpayPublicKey || '';
+    paymentCfg.googlePayEnabled     = !!p.googlePayEnabled;
+    paymentCfg.googlePayMerchantId  = p.googlePayMerchantId || '';
+    paymentCfg.currency             = p.currency || 'USD';
+
+    // Pre-load Stripe.js in the background if needed (so card mounts instantly later)
+    if (paymentCfg.stripeEnabled && paymentCfg.stripePublishableKey) {
+      loadStripeJs(function() {});
+    }
+
     var now    = new Date();
     s.year     = now.getFullYear();
     s.month    = now.getMonth();

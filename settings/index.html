@@ -261,6 +261,7 @@
     <button class="tab" data-tab="availability">Availability</button>
     <button class="tab" data-tab="bookings">Bookings</button>
     <button class="tab" data-tab="appearance">Widget Appearance 🎨</button>
+    <button class="tab" data-tab="payments">Payments 💳</button>
     <button class="tab" data-tab="authorization">Authorization 🔒</button>
     <button class="tab" data-tab="install">Widget Install 📦</button>
   </div>
@@ -546,6 +547,125 @@
     </div>
   </div>
 
+  <!-- ── Payments Tab ──────────────────────────────────────────────────── -->
+  <div id="tab-payments" hidden>
+    <div class="card" style="max-width:700px">
+      <div class="card-hdr"><h2>Payment Settings</h2></div>
+      <div class="card-body">
+
+        <!-- Test mode -->
+        <div class="form-group" style="background:#fffbeb;border:1px solid #fef08a;border-radius:8px;padding:14px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#92400e">🧪 Test Mode</div>
+              <div style="font-size:12px;color:#78350f;margin-top:2px">Accept bookings without real payment. Booking flow works end-to-end using a fake "Pay" button.</div>
+            </div>
+            <label class="toggle" style="flex-shrink:0;margin-left:16px">
+              <input type="checkbox" id="pay-test-mode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Currency -->
+        <div class="form-group" style="max-width:180px;margin-bottom:24px">
+          <label>Currency</label>
+          <select id="pay-currency">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="UAH">UAH — Ukrainian Hryvnia</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="PLN">PLN — Polish Zloty</option>
+          </select>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+
+        <!-- Stripe -->
+        <div class="form-group" style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:15px;font-weight:700;color:#1e293b">Stripe</div>
+            <label class="toggle">
+              <input type="checkbox" id="stripe-enabled">
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size:12px;color:#64748b">Embedded card form inside the widget</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Publishable Key</label>
+              <input type="text" id="stripe-pk" placeholder="pk_test_… or pk_live_…" autocomplete="off">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Secret Key</label>
+              <input type="password" id="stripe-sk" placeholder="Leave blank to keep current" autocomplete="new-password">
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#64748b">
+            Get keys at <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener" style="color:#2563eb">dashboard.stripe.com → Developers → API Keys</a>.
+            Test card: <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">4242 4242 4242 4242</code>, any future date, any CVC.
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+
+        <!-- LiqPay -->
+        <div class="form-group" style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:15px;font-weight:700;color:#1e293b">LiqPay</div>
+            <label class="toggle">
+              <input type="checkbox" id="liqpay-enabled">
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size:12px;color:#64748b">Ukrainian payment gateway (opens LiqPay checkout)</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Public Key</label>
+              <input type="text" id="liqpay-pk" placeholder="sandbox_… or live public key" autocomplete="off">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Private Key</label>
+              <input type="password" id="liqpay-sk" placeholder="Leave blank to keep current" autocomplete="new-password">
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#64748b">
+            Register at <a href="https://app.liqpay.ua" target="_blank" rel="noopener" style="color:#2563eb">app.liqpay.ua</a>.
+            Sandbox keys start with <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">sandbox_</code>.
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+
+        <!-- Google Pay -->
+        <div class="form-group" style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:15px;font-weight:700;color:#1e293b">Google Pay</div>
+            <label class="toggle">
+              <input type="checkbox" id="gpay-enabled">
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size:12px;color:#64748b">Requires Stripe to be configured (uses Stripe's Google Pay integration)</span>
+          </div>
+          <div style="max-width:320px">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Merchant ID (optional)</label>
+              <input type="text" id="gpay-merchant-id" placeholder="BCR2DN4T… (from Google Pay console)">
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#64748b">
+            In test/development mode, Google Pay works without a Merchant ID. For production, register at
+            <a href="https://pay.google.com/business/console" target="_blank" rel="noopener" style="color:#2563eb">Google Pay Business Console</a>.
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-save-payments">Save Payment Settings</button>
+        <span id="pay-save-msg" style="font-size:13px;margin-left:10px"></span>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ── Authorization Tab ─────────────────────────────────────────────── -->
   <div id="tab-authorization" hidden>
     <div class="card">
@@ -789,7 +909,7 @@
   }
 
   // ── Tabs ───────────────────────────────────────────────────────────────────
-  var ALL_TABS = ['workers','availability','bookings','appearance','authorization','install'];
+  var ALL_TABS = ['workers','availability','bookings','appearance','payments','authorization','install'];
 
   document.querySelectorAll('.tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
@@ -802,6 +922,7 @@
       if (name === 'availability')  initAvailTab();
       if (name === 'bookings')      loadBookings();
       if (name === 'appearance')    initAppearanceTab();
+      if (name === 'payments')      loadPaymentSettings();
       if (name === 'authorization') loadAuthSettings();
       if (name === 'install')       initInstallTab();
     });
@@ -826,12 +947,16 @@
       return;
     }
     var html = '<table><thead><tr>' +
-      '<th>Name</th><th>Title</th><th>Status</th><th></th>' +
+      '<th>Name</th><th>Title</th><th>Price</th><th>Status</th><th></th>' +
       '</tr></thead><tbody>';
     workers.forEach(function(w) {
+      var priceCell = w.payment_required
+        ? '<strong style="color:#16a34a">' + esc(parseFloat(w.booking_price || 0).toFixed(2)) + '</strong> <span style="font-size:10px;background:#dcfce7;color:#166534;border-radius:99px;padding:1px 6px;font-weight:700">PAID</span>'
+        : '<span style="color:#cbd5e1">Free</span>';
       html += '<tr>' +
         '<td><strong>' + esc(w.name) + '</strong></td>' +
         '<td>' + esc(w.title || '—') + '</td>' +
+        '<td>' + priceCell + '</td>' +
         '<td><span class="badge ' + (w.is_active ? 'badge-green' : 'badge-gray') + '">' +
           (w.is_active ? 'Active' : 'Inactive') + '</span></td>' +
         '<td style="display:flex;gap:6px;justify-content:flex-end">' +
@@ -851,12 +976,30 @@
   function showWorkerForm(worker) {
     var wrap = document.getElementById('worker-form-wrap');
     var editing = !!worker;
+    var priceVal   = editing ? (worker.booking_price    || '0') : '0';
+    var payReqVal  = editing ? (worker.payment_required  ? 'checked' : '') : '';
     wrap.innerHTML = '<div class="inline-form">' +
       '<h3>' + (editing ? 'Edit Worker' : 'New Worker') + '</h3>' +
       '<div class="form-row">' +
         '<div class="form-group"><label>Name *</label><input id="wf-name" value="' + esc(editing ? worker.name : '') + '"></div>' +
         '<div class="form-group"><label>Title</label><input id="wf-title" value="' + esc(editing ? worker.title : '') + '"></div>' +
         '<div class="form-group full"><label>Bio</label><textarea id="wf-bio">' + esc(editing ? worker.bio : '') + '</textarea></div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:18px;padding:10px 0;border-top:1px solid #f1f5f9;margin-top:4px">' +
+        '<div class="form-group" style="margin-bottom:0;min-width:140px">' +
+          '<label>Booking Price</label>' +
+          '<input type="number" id="wf-price" value="' + esc(priceVal) + '" min="0" step="0.01" placeholder="0.00" style="max-width:120px">' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<label class="toggle" style="flex-shrink:0">' +
+            '<input type="checkbox" id="wf-payment-required" ' + payReqVal + '>' +
+            '<span class="toggle-slider"></span>' +
+          '</label>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:600;color:#334155">Require payment</div>' +
+            '<div style="font-size:11px;color:#94a3b8">Widget shows payment step before booking</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div class="form-actions">' +
         '<button class="btn btn-secondary btn-sm" id="wf-cancel">Cancel</button>' +
@@ -869,9 +1012,11 @@
       var name = document.getElementById('wf-name').value.trim();
       if (!name) { showMsg('Name is required', false); return; }
       var payload = {
-        name:  name,
-        title: document.getElementById('wf-title').value.trim(),
-        bio:   document.getElementById('wf-bio').value.trim(),
+        name:             name,
+        title:            document.getElementById('wf-title').value.trim(),
+        bio:              document.getElementById('wf-bio').value.trim(),
+        booking_price:    parseFloat(document.getElementById('wf-price').value) || 0,
+        payment_required: document.getElementById('wf-payment-required').checked ? 1 : 0,
       };
       var req = editing
         ? put('/api/workers/' + worker.id, payload)
@@ -1082,7 +1227,7 @@
       // Populate worker filter
       var workerSel = document.getElementById('filter-worker');
       var existing = {};
-      workerSel.querySelectorAll('option[value!=""]').forEach(function(o){ existing[o.value] = true; });
+      workerSel.querySelectorAll('option:not([value=""])').forEach(function(o){ existing[o.value] = true; });
       allBookings.forEach(function(b) {
         if (!existing[b.worker_name]) {
           existing[b.worker_name] = true;
@@ -1145,7 +1290,7 @@
       return;
     }
     var html = '<table><thead><tr>' +
-      '<th>Date</th><th>Time</th><th>Worker</th><th>Visitor</th><th>Contact</th><th>Notes</th><th>Status</th><th>CRM</th><th></th>' +
+      '<th>Date</th><th>Time</th><th>Worker</th><th>Visitor</th><th>Contact</th><th>Notes</th><th>Payment</th><th>Status</th><th>CRM</th><th></th>' +
       '</tr></thead><tbody>';
     data.forEach(function(b) {
       var badge = b.status === 'CONFIRMED' ? 'badge-green'
@@ -1158,6 +1303,9 @@
       var contact = esc(b.visitor_email);
       if (b.visitor_phone) contact += '<br><span style="color:#64748b;font-size:11px">' + esc(b.visitor_phone) + '</span>';
       var notes = b.notes ? '<span title="' + esc(b.notes) + '" style="max-width:120px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(b.notes) + '</span>' : '<span style="color:#cbd5e1">—</span>';
+      var paymentCell = (b.amount_paid && parseFloat(b.amount_paid) > 0)
+        ? '<span class="badge badge-green" title="Payment ID: ' + esc(b.payment_id||'') + '">💳 ' + parseFloat(b.amount_paid).toFixed(2) + ' ' + esc(b.currency||'') + '</span>'
+        : '<span style="color:#cbd5e1">Free</span>';
 
       html += '<tr>' +
         '<td>' + esc(b.date) + '</td>' +
@@ -1166,6 +1314,7 @@
         '<td><strong>' + esc(b.visitor_name) + '</strong></td>' +
         '<td>' + contact + '</td>' +
         '<td>' + notes + '</td>' +
+        '<td>' + paymentCell + '</td>' +
         '<td><span class="badge ' + badge + '">' + b.status + '</span></td>' +
         '<td>' + crmBadge + '</td>' +
         '<td style="display:flex;gap:5px;min-width:140px">';
@@ -1720,6 +1869,60 @@
       showMsg('Save failed: ' + e.message, false);
     });
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PAYMENTS TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  function loadPaymentSettings() {
+    get('/api/settings').then(function(s) {
+      document.getElementById('pay-test-mode').checked    = s.payment_test_mode      === '1';
+      document.getElementById('pay-currency').value       = s.payment_currency       || 'USD';
+      document.getElementById('stripe-enabled').checked   = s.stripe_enabled         === '1';
+      document.getElementById('stripe-pk').value          = s.stripe_publishable_key || '';
+      // Never show secret back — blank means "not changed"
+      document.getElementById('stripe-sk').value          = '';
+      document.getElementById('liqpay-enabled').checked   = s.liqpay_enabled         === '1';
+      document.getElementById('liqpay-pk').value          = s.liqpay_public_key      || '';
+      document.getElementById('liqpay-sk').value          = '';
+      document.getElementById('gpay-enabled').checked     = s.google_pay_enabled     === '1';
+      document.getElementById('gpay-merchant-id').value   = s.google_pay_merchant_id || '';
+    });
+  }
+
+  document.getElementById('btn-save-payments').addEventListener('click', function() {
+    var msg = document.getElementById('pay-save-msg');
+    msg.textContent = 'Saving…';
+    msg.style.color = '#64748b';
+
+    var payload = {
+      payment_test_mode:      document.getElementById('pay-test-mode').checked    ? '1' : '0',
+      payment_currency:       document.getElementById('pay-currency').value,
+      stripe_enabled:         document.getElementById('stripe-enabled').checked   ? '1' : '0',
+      stripe_publishable_key: document.getElementById('stripe-pk').value.trim(),
+      liqpay_enabled:         document.getElementById('liqpay-enabled').checked   ? '1' : '0',
+      liqpay_public_key:      document.getElementById('liqpay-pk').value.trim(),
+      google_pay_enabled:     document.getElementById('gpay-enabled').checked     ? '1' : '0',
+      google_pay_merchant_id: document.getElementById('gpay-merchant-id').value.trim(),
+    };
+
+    // Only send secrets if user typed something
+    var sk = document.getElementById('stripe-sk').value.trim();
+    if (sk) payload.stripe_secret_key = sk;
+    var liqSk = document.getElementById('liqpay-sk').value.trim();
+    if (liqSk) payload.liqpay_private_key = liqSk;
+
+    post('/api/settings', payload).then(function(r) {
+      if (r.error) { msg.textContent = '✗ ' + r.error; msg.style.color = '#ef4444'; return; }
+      document.getElementById('stripe-sk').value = '';
+      document.getElementById('liqpay-sk').value  = '';
+      msg.textContent = '✓ Saved';
+      msg.style.color = '#16a34a';
+      setTimeout(function(){ msg.textContent = ''; }, 2500);
+    }).catch(function(e) {
+      msg.textContent = '✗ Error: ' + e.message;
+      msg.style.color = '#ef4444';
+    });
+  });
 
   // ── Escape HTML ────────────────────────────────────────────────────────────
   function esc(s) {
