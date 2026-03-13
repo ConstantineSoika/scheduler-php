@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operator Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f8fafc; color: #1e293b; }
+
+    /* site nav */
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 10px 24px; display: flex; gap: 18px; align-items: center; }
+    nav a { text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; padding: 4px 2px; border-bottom: 2px solid transparent; }
+    nav a:hover { color: #2563eb; }
+    nav a[aria-current] { color: #2563eb; border-color: #2563eb; }
+
+    /* layout */
+    .page { max-width: 920px; margin: 0 auto; padding: 28px 20px; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .api-key-box { font-size: 13px; color: #64748b; margin-bottom: 22px; }
+    .api-key-box code { background: #f1f5f9; padding: 2px 8px; border-radius: 5px; font-size: 12px; color: #334155; user-select: all; }
+
+    /* tabs */
+    .tabs { display: flex; gap: 4px; border-bottom: 2px solid #e2e8f0; margin-bottom: 22px; flex-wrap: wrap; }
+    .tab { background: none; border: none; padding: 9px 18px; font-size: 14px; font-weight: 500; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; border-radius: 6px 6px 0 0; transition: color .12s; }
+    .tab:hover { color: #2563eb; background: #f1f5f9; }
+    .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: none; }
+
+    /* card */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .card-hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #f1f5f9; }
+    .card-hdr h2 { margin: 0; font-size: 15px; }
+    .card-body { padding: 20px 18px; }
+
+    /* buttons */
+    .btn { padding: 7px 14px; border-radius: 7px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .12s; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #f1f5f9; color: #334155; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-ghost { background: none; color: #64748b; border: 1px solid #e2e8f0; }
+    .btn-ghost:hover { background: #f8fafc; color: #1e293b; }
+
+    /* table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #f1f5f9; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+
+    /* form */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 11px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
+    .form-group textarea { min-height: 60px; resize: vertical; }
+    .form-group.full { grid-column: 1 / -1; }
+    .inline-form { padding: 14px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+    .inline-form h3 { margin: 0 0 12px; font-size: 14px; }
+    .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+    /* badges */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+
+    /* misc */
+    .empty { text-align: center; padding: 32px; color: #94a3b8; font-size: 14px; }
+    .msg { padding: 9px 13px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .msg-ok  { background: #dcfce7; color: #166534; }
+    .msg-err { background: #fee2e2; color: #991b1b; }
+
+    /* slots grid */
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 7px; margin-top: 10px; }
+    .slot-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 7px; font-size: 12px; }
+    .slot-item.booked { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .slot-booked-lbl { font-size: 10px; color: #f97316; font-weight: 600; }
+
+    /* ── Site-level login gate ───────────────────────────────────────────── */
+    #site-gate { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 48px 20px; background: #f8fafc; }
+    .auth-gate-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px 28px; width: 100%; max-width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+    .auth-gate-box h2 { margin: 0 0 6px; font-size: 17px; }
+    .auth-gate-box p  { margin: 0 0 20px; font-size: 13px; color: #64748b; }
+    .auth-gate-lock   { font-size: 32px; text-align: center; margin-bottom: 16px; }
+    .auth-gate-err    { background: #fee2e2; color: #991b1b; border-radius: 7px; padding: 8px 12px; font-size: 13px; margin-top: 12px; display: none; }
+
+    /* ── Authorization tab ───────────────────────────────────────────────── */
+    .auth-section { margin-bottom: 20px; }
+    .auth-section h3 { font-size: 14px; font-weight: 700; color: #334155; margin: 0 0 4px; }
+    .auth-section p  { font-size: 13px; color: #64748b; margin: 0 0 14px; }
+    .auth-divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+    /* SMS toggle */
+    .sms-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; border-radius: 24px; transition: .2s; }
+    .toggle-track::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .toggle-switch input:checked + .toggle-track { background: #2563eb; }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(20px); }
+    .sms-balance-badge { display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 10px; font-size: 13px; font-weight: 600; color: #1e293b; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: #94a3b8; vertical-align: middle; }
+    .status-dot.ok  { background: #22c55e; }
+    .status-dot.err { background: #ef4444; }
+    .status-line { font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 5px; min-height: 22px; }
+    .input-with-btn { display: flex; gap: 8px; align-items: center; }
+    .input-with-btn input { flex: 1; }
+
+    /* pipelines helper */
+    .pipelines-panel { margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .pipelines-panel-hdr { padding: 10px 14px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #e2e8f0; }
+    .pipeline-row { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .pipeline-row:last-child { border-bottom: none; }
+    .pipeline-name { font-weight: 600; margin-bottom: 6px; }
+    .step-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .step-btn { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: #334155; transition: all .1s; }
+    .step-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    /* ── Availability Tab ────────────────────────────────────────────────── */
+    .avail-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .avail-section-hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+    .avail-section-hdr h3 { margin: 0; font-size: 14px; font-weight: 700; color: #334155; }
+    .avail-section-body { padding: 16px; }
+    .day-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .day-chip { display: flex; align-items: center; gap: 5px; padding: 5px 11px; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; background: #fff; color: #64748b; transition: all .12s; }
+    .day-chip input { display: none; }
+    .day-chip.checked { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .dur-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dur-btn { padding: 5px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: #fff; color: #334155; transition: all .1s; }
+    .dur-btn.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .slots-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+    /* ── Bookings filter bar ─────────────────────────────────────────────── */
+    .filter-bar { padding: 14px 18px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; background: #fafafa; }
+    .filter-bar .form-group { margin-bottom: 0; min-width: 120px; }
+    .filter-count { font-size: 12px; color: #64748b; padding: 6px 0; }
+
+    /* ── Widget Appearance tab ───────────────────────────────────────────── */
+    .appearance-layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .appearance-layout { grid-template-columns: 1fr; } }
+    .appearance-controls { display: flex; flex-direction: column; gap: 14px; }
+    .appearance-preview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; position: sticky; top: 20px; }
+    .appearance-preview-hdr { padding: 10px 14px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+    .appearance-preview iframe { width: 100%; height: 480px; border: none; display: block; background: #fff; }
+    .color-swatch-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 8px; }
+    .color-swatch { width: 26px; height: 26px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: transform .1s, border-color .1s; flex-shrink: 0; }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: #1C1C28; transform: scale(1.1); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f1f5f9; }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 13px; color: #334155; }
+    .toggle-sub   { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .toggle { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #e2e8f0; border-radius: 99px; transition: .2s; }
+    .toggle-slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .toggle input:checked + .toggle-slider { background: #2563eb; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .radius-presets { display: flex; gap: 6px; }
+    .radius-btn { padding: 5px 11px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: #fff; color: #334155; transition: all .1s; }
+    .radius-btn.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .shadow-presets { display: flex; gap: 6px; }
+    .shadow-btn { padding: 5px 11px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: #fff; color: #334155; transition: all .1s; }
+    .shadow-btn.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .mode-toggle { display: flex; background: #f1f5f9; border-radius: 8px; padding: 3px; gap: 3px; }
+    .mode-btn { flex: 1; padding: 6px 14px; border: none; background: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: #64748b; transition: all .15s; }
+    .mode-btn.selected { background: #fff; color: #2563eb; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .color-pair { display: flex; align-items: center; gap: 10px; }
+    .color-pair input[type=color] { width: 36px; height: 30px; padding: 2px; border: 1px solid #e2e8f0; border-radius: 7px; cursor: pointer; background: none; }
+    .live-badge { background: #dcfce7; color: #166534; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: .02em; }
+    /* ── Go Web bar ── */
+    .go-web-bar { display: flex; align-items: center; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .go-web-bar .btn-go { background: #16a34a; color: #fff; border: none; border-radius: 7px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s; }
+    .go-web-bar .btn-go:hover { background: #15803d; }
+    .go-web-bar .btn-go:disabled { background: #86efac; cursor: default; }
+    .go-web-bar .btn-stop { background: #fff; color: #dc2626; border: 1px solid #fca5a5; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .go-web-bar .btn-stop:hover { background: #fef2f2; }
+    .go-web-url-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 6px; }
+    .go-web-url-row a { font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none; word-break: break-all; }
+    .go-web-url-row a:hover { text-decoration: underline; }
+    .go-web-url-row .copy-url-btn { flex-shrink: 0; background: #e0f2fe; color: #0369a1; border: none; border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .go-web-url-row .copy-url-btn:hover { background: #bae6fd; }
+    .go-web-status { font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 5px; }
+    .go-web-status .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-stopped  { background: #94a3b8; }
+    .dot-starting { background: #f59e0b; animation: pulse-dot .8s ease-in-out infinite alternate; }
+    .dot-running  { background: #16a34a; }
+    .dot-error    { background: #dc2626; }
+    @keyframes pulse-dot { from { opacity:.5; } to { opacity:1; } }
+    /* ── Install tab ── */
+    .install-step { display: flex; gap: 18px; padding: 20px 0; border-bottom: 1px solid #f1f5f9; }
+    .install-step-num { flex-shrink: 0; width: 32px; height: 32px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; margin-top: 2px; }
+    .install-step-body { flex: 1; min-width: 0; }
+    .install-step-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+    .install-step-desc { font-size: 13px; color: #475569; line-height: 1.55; margin: 0 0 4px; }
+    .code-block { position: relative; background: #0f172a; border-radius: 8px; padding: 16px 48px 16px 16px; }
+    .code-block pre { margin: 0; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: #e2e8f0; line-height: 1.6; }
+    .copy-btn { position: absolute; top: 10px; right: 10px; background: #334155; color: #e2e8f0; border: none; border-radius: 5px; padding: 4px 10px; font-size: 11px; cursor: pointer; transition: background .15s; }
+    .copy-btn:hover { background: #475569; }
+    .copy-btn.copied { background: #16a34a; color: #fff; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" style="text-decoration:none;font-size:17px;font-weight:700;color:#2563eb;letter-spacing:-.3px">Scheduler<span style="color:#7c3aed">.</span></a>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="btn-sign-out" class="btn btn-ghost btn-sm" hidden>Sign Out</button>
+    <a href="/settings" aria-current="page">Settings</a>
+  </div>
+</nav>
+
+<!-- ── Site-level login gate ──────────────────────────────────────────────── -->
+<div id="site-gate">
+  <div class="auth-gate-box">
+    <div class="auth-gate-lock">🔒</div>
+    <h2>Operator Dashboard</h2>
+    <p>Enter your API key to access the settings. You received it when you registered. Find it in your welcome email or ask the admin.</p>
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" id="gate-api-key" autocomplete="current-password" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" id="btn-gate-submit">Sign In</button>
+    <div style="margin-top:12px;text-align:center;font-size:12px;color:#94a3b8">
+      Don't have an account? <a href="/register" style="color:#2563eb;font-weight:600">Register free →</a>
+    </div>
+    <div class="auth-gate-err" id="gate-err">Invalid API key</div>
+  </div>
+</div>
+
+<!-- ── Main content (revealed after login) ───────────────────────────────── -->
+<div id="site-content" hidden>
+<div class="page">
+  <h1>Operator Settings</h1>
+  <div class="api-key-box">API Key: <code id="api-key">loading…</code></div>
+
+  <!-- ── Go Web bar ─────────────────────────────────────────────────────── -->
+  <div class="go-web-bar" id="go-web-bar">
+    <button class="btn-go" id="btn-go-web">🌐 Go Web</button>
+    <button class="btn-stop" id="btn-stop-tunnel" hidden>⏹ Stop</button>
+    <span class="go-web-status" id="go-web-status">
+      <span class="dot dot-stopped" id="tunnel-dot"></span>
+      <span id="tunnel-status-text">Offline</span>
+    </span>
+  </div>
+  <div class="go-web-url-row" id="go-web-url-row" hidden>
+    <a id="tunnel-url-link" href="#" target="_blank" rel="noopener"></a>
+    <button class="copy-url-btn" id="btn-copy-tunnel-url">Copy</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="workers">Workers</button>
+    <button class="tab" data-tab="availability">Availability</button>
+    <button class="tab" data-tab="bookings">Bookings</button>
+    <button class="tab" data-tab="appearance">Widget Appearance 🎨</button>
+    <button class="tab" data-tab="authorization">Authorization 🔒</button>
+    <button class="tab" data-tab="install">Widget Install 📦</button>
+  </div>
+
+  <div id="msg-bar"></div>
+
+  <!-- ── Workers Tab ─────────────────────────────────────────────────────── -->
+  <div id="tab-workers">
+    <div class="card">
+      <div class="card-hdr">
+        <h2>Workers</h2>
+        <button class="btn btn-primary btn-sm" id="btn-add-worker">+ Add Worker</button>
+      </div>
+      <div id="worker-form-wrap"></div>
+      <div id="workers-table-wrap"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ── Availability Tab ────────────────────────────────────────────────── -->
+  <div id="tab-availability" hidden>
+    <div class="card">
+      <div class="card-hdr" style="padding-bottom:14px">
+        <h2>Availability</h2>
+      </div>
+      <div class="card-body">
+
+        <!-- Shared worker selector -->
+        <div class="form-group" style="max-width:280px;margin-bottom:20px">
+          <label>Worker</label>
+          <select id="avail-worker">
+            <option value="">— select worker —</option>
+          </select>
+        </div>
+
+        <!-- ── Section 1: Generate ─────────────────────────────────────── -->
+        <div class="avail-section">
+          <div class="avail-section-hdr">
+            <h3>⚡ Generate Recurring Slots</h3>
+          </div>
+          <div class="avail-section-body">
+            <div class="form-row-4" style="margin-bottom:12px">
+              <div class="form-group" style="margin-bottom:0">
+                <label>From</label>
+                <input type="date" id="gf-from">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label>To</label>
+                <input type="date" id="gf-to">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label>Start Time</label>
+                <input type="time" id="gf-start" value="09:00">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label>End Time</label>
+                <input type="time" id="gf-end" value="17:00">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px">
+              <label>Slot Duration</label>
+              <div class="dur-presets" id="dur-presets">
+                <button class="dur-btn" data-d="15">15 min</button>
+                <button class="dur-btn selected" data-d="30">30 min</button>
+                <button class="dur-btn" data-d="45">45 min</button>
+                <button class="dur-btn" data-d="60">1 hour</button>
+                <button class="dur-btn" data-d="90">90 min</button>
+                <button class="dur-btn" data-d="120">2 hours</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:14px">
+              <label>Days of Week</label>
+              <div class="day-chips" id="day-chips">
+                <label class="day-chip checked"><input type="checkbox" value="0" checked>Mon</label>
+                <label class="day-chip checked"><input type="checkbox" value="1" checked>Tue</label>
+                <label class="day-chip checked"><input type="checkbox" value="2" checked>Wed</label>
+                <label class="day-chip checked"><input type="checkbox" value="3" checked>Thu</label>
+                <label class="day-chip checked"><input type="checkbox" value="4" checked>Fri</label>
+                <label class="day-chip"><input type="checkbox" value="5">Sat</label>
+                <label class="day-chip"><input type="checkbox" value="6">Sun</label>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="btn btn-primary" id="btn-generate">⚡ Generate Slots</button>
+              <span id="gen-msg" style="font-size:13px"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Section 2: View & Manage a Day ─────────────────────────── -->
+        <div class="avail-section">
+          <div class="avail-section-hdr">
+            <h3>📅 View &amp; Manage a Specific Day</h3>
+          </div>
+          <div class="avail-section-body">
+            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px">
+              <div class="form-group" style="margin-bottom:0">
+                <label>Date</label>
+                <input type="date" id="avail-date">
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-load-slots">Load Slots</button>
+            </div>
+            <div id="avail-slots-wrap"></div>
+            <div id="add-slot-form-wrap"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bookings Tab ───────────────────────────────────────────────────── -->
+  <div id="tab-bookings" hidden>
+    <div class="card">
+      <div class="card-hdr">
+        <h2>Bookings</h2>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-bookings">↻ Refresh</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="form-group" style="min-width:150px">
+          <label>Worker</label>
+          <select id="filter-worker">
+            <option value="">All workers</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width:130px">
+          <label>Status</label>
+          <select id="filter-status">
+            <option value="">All statuses</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date From</label>
+          <input type="date" id="filter-date-from">
+        </div>
+        <div class="form-group">
+          <label>Date To</label>
+          <input type="date" id="filter-date-to">
+        </div>
+        <div class="form-group" style="flex:1;min-width:140px">
+          <label>Search</label>
+          <input type="text" id="filter-search" placeholder="name, email, phone…">
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-clear-filters" style="align-self:flex-end">✕ Clear</button>
+      </div>
+
+      <div style="padding:8px 18px 0">
+        <span class="filter-count" id="bookings-count"></span>
+      </div>
+      <div id="bookings-table-wrap"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ── Widget Appearance Tab ──────────────────────────────────────────── -->
+  <div id="tab-appearance" hidden>
+    <div class="appearance-layout">
+
+      <!-- Left: controls -->
+      <div class="appearance-controls">
+
+        <!-- Colors -->
+        <div class="card">
+          <div class="card-hdr"><h2>Colors</h2></div>
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Primary Color</label>
+              <div class="color-swatch-row" id="color-swatches"></div>
+              <div class="color-pair" style="margin-top:6px">
+                <input type="color" id="wgt-primary-picker">
+                <span style="font-size:12px;color:#64748b">Custom</span>
+                <code id="wgt-primary-hex" style="font-size:12px;color:#334155;background:#f1f5f9;padding:2px 8px;border-radius:4px">#2863E0</code>
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Header Gradient</div>
+                <div class="toggle-sub">Blend primary color with purple</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="wgt-gradient" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group" style="margin-top:12px;margin-bottom:8px">
+              <label>Widget Background</label>
+              <div class="color-pair">
+                <input type="color" id="wgt-bg-picker" value="#ffffff">
+                <code id="wgt-bg-hex" style="font-size:12px;color:#334155;background:#f1f5f9;padding:2px 8px;border-radius:4px">#ffffff</code>
+                <button class="btn btn-ghost btn-sm" id="btn-reset-bg">Reset</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label>Text Color</label>
+              <div class="color-pair">
+                <input type="color" id="wgt-text-picker" value="#1c1c28">
+                <code id="wgt-text-hex" style="font-size:12px;color:#334155;background:#f1f5f9;padding:2px 8px;border-radius:4px">#1c1c28</code>
+                <button class="btn btn-ghost btn-sm" id="btn-reset-text">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shape & Typography -->
+        <div class="card">
+          <div class="card-hdr"><h2>Shape &amp; Typography</h2></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Border Radius</label>
+              <div class="radius-presets" id="radius-presets">
+                <button class="radius-btn" data-r="0">Square</button>
+                <button class="radius-btn" data-r="4">Sharp</button>
+                <button class="radius-btn" data-r="8">Soft</button>
+                <button class="radius-btn selected" data-r="12">Rounded</button>
+                <button class="radius-btn" data-r="20">Pill</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Font Family</label>
+              <select id="wgt-font">
+                <option value="system">System UI (default)</option>
+                <option value="inter">Inter</option>
+                <option value="roboto">Roboto</option>
+                <option value="opensans">Open Sans</option>
+                <option value="poppins">Poppins</option>
+                <option value="nunito">Nunito</option>
+                <option value="lato">Lato</option>
+                <option value="montserrat">Montserrat</option>
+                <option value="dmSans">DM Sans</option>
+                <option value="playfair">Playfair Display</option>
+                <option value="georgia">Georgia (serif)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label>Shadow</label>
+              <div class="shadow-presets" id="shadow-presets">
+                <button class="shadow-btn" data-s="none">None</button>
+                <button class="shadow-btn selected" data-s="default">Default</button>
+                <button class="shadow-btn" data-s="strong">Strong</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="card">
+          <div class="card-hdr"><h2>Calendar View</h2></div>
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Default Display Mode</label>
+              <div class="mode-toggle" id="view-mode-toggle">
+                <button class="mode-btn selected" data-mode="month">📅 Month</button>
+                <button class="mode-btn" data-mode="week">📆 Week Strip</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-save-appearance">Save &amp; Apply</button>
+
+      </div>
+
+      <!-- Right: live preview -->
+      <div class="appearance-preview">
+        <div class="appearance-preview-hdr">
+          <span>Live Preview</span>
+          <span class="live-badge">LIVE</span>
+        </div>
+        <iframe id="appearance-preview-frame" src="/" title="Widget Preview"></iframe>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Authorization Tab ─────────────────────────────────────────────── -->
+  <div id="tab-authorization" hidden>
+    <div class="card">
+      <div class="card-hdr" style="flex-wrap:wrap;gap:8px">
+        <h2>SendPulse CRM Integration</h2>
+        <div id="sp-status-line" class="status-line">
+          <span class="status-dot" id="sp-dot"></span>
+          <span id="sp-status-text">Not configured</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <!-- ── SMS Confirmation (top) ──────────────────────────────────── -->
+        <div class="auth-section">
+          <div class="sms-toggle-row" style="margin-bottom:6px">
+            <div>
+              <h3>📱 SMS Confirmation</h3>
+              <p style="margin:0;margin-top:2px">Verify Ukrainian phone numbers (+380) via OTP before confirming a booking.</p>
+            </div>
+            <label class="toggle-switch" title="Enable SMS confirmation" style="margin-left:16px">
+              <input type="checkbox" id="sms-enabled">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="sms-settings-panel" hidden>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:20px">
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+              <div style="flex:1">
+                <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Sender ID</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <select id="sms-sender-sel" style="flex:1;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;background:#fff">
+                    <option value="">— select sender —</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" id="btn-reload-senders">↻</button>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">SMS Balance</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span class="sms-balance-badge" id="sms-balance-val">—</span>
+                  <button class="btn btn-ghost btn-sm" id="btn-check-balance">Check</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="auth-divider">
+
+        <!-- API Credentials -->
+        <div class="auth-section">
+          <h3>API Credentials</h3>
+          <p>Find your Client ID and Client Secret at
+            <a href="https://login.sendpulse.com/settings#api" target="_blank" rel="noopener">
+              SendPulse → Settings → API
+            </a>.
+          </p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Client ID</label>
+              <input type="text" id="sp-client-id" placeholder="e.g. a1b2c3d4e5f6…" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Client Secret</label>
+              <input type="password" id="sp-client-secret" placeholder="Leave blank to keep current" autocomplete="new-password">
+            </div>
+          </div>
+        </div>
+
+        <hr class="auth-divider">
+
+        <!-- CRM mapping -->
+        <div class="auth-section">
+          <h3>CRM Pipeline Mapping</h3>
+          <p>New appointments will be created as deals in the pipeline step you choose.
+             Enter the IDs manually or use <strong>Load Pipelines</strong> to browse.</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Pipeline ID</label>
+              <input type="number" id="sp-pipeline-id" placeholder="e.g. 12">
+            </div>
+            <div class="form-group">
+              <label>Step ID</label>
+              <input type="number" id="sp-step-id" placeholder="e.g. 34">
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-load-pipelines">⬇ Load Pipelines</button>
+          <div id="pipelines-panel"></div>
+        </div>
+
+        <hr class="auth-divider">
+
+        <!-- Responsible ID -->
+        <div class="auth-section">
+          <h3>Responsible Team Member <span style="font-weight:400;color:#94a3b8">(optional)</span></h3>
+          <p>Numeric SendPulse user ID to assign new contacts and deals to.</p>
+          <div style="max-width:220px">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Responsible ID</label>
+              <input type="number" id="sp-responsible-id" placeholder="e.g. 56">
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">
+          <button class="btn btn-primary" id="btn-save-auth">Save All Settings</button>
+          <button class="btn btn-ghost" id="btn-test-auth">Test Connection</button>
+        </div>
+
+      </div><!-- /.card-body -->
+    </div><!-- /.card -->
+
+  </div><!-- /#tab-authorization -->
+
+  <!-- ── Widget Install Tab ──────────────────────────────────────────────── -->
+  <div id="tab-install" hidden>
+
+    <div class="card" style="max-width:760px">
+      <div class="card-hdr">
+        <span>📦 Install the Widget on Any Website</span>
+      </div>
+      <div class="card-body" style="padding:28px 28px 32px">
+
+        <!-- Intro -->
+        <p style="margin:0 0 28px;color:#475569;font-size:14px;line-height:1.6">
+          The scheduling widget is a self-contained JavaScript snippet. Paste it into any HTML page
+          and it connects back to this server to serve availability, bookings, and settings.
+          Your server is publicly available at
+          <strong><a href="https://scheduler-prod.duckdns.org" target="_blank" rel="noopener">scheduler-prod.duckdns.org</a></strong>
+          with automatic HTTPS — no extra setup needed.
+        </p>
+
+        <!-- Step 1 -->
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-body">
+            <div class="install-step-title">Confirm your public server URL</div>
+            <p class="install-step-desc">
+              Your server is already live at the permanent address below. The URL is pre-filled for you.
+              Update it here only if you move to a different domain.
+            </p>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+              <input id="install-public-url"
+                     type="url"
+                     placeholder="https://scheduler-prod.duckdns.org"
+                     style="flex:1;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none"
+                     autocomplete="off" spellcheck="false">
+              <button class="btn btn-primary btn-sm" id="btn-save-public-url">Save</button>
+            </div>
+            <div id="install-url-status" style="font-size:12px;color:#16a34a;margin-top:6px;min-height:18px"></div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-body">
+            <div class="install-step-title">Paste the snippet into your page</div>
+            <p class="install-step-desc">
+              Place the code below wherever you want the widget to appear — typically just before
+              <code>&lt;/body&gt;</code> or inside a dedicated container element.
+            </p>
+            <div class="code-block" style="margin-top:10px">
+              <button class="copy-btn" id="btn-copy-snippet">Copy</button>
+              <pre id="install-snippet" style="white-space:pre;overflow-x:auto"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="install-step" style="border-bottom:none;padding-bottom:0">
+          <div class="install-step-num">3</div>
+          <div class="install-step-body">
+            <div class="install-step-title">Customise appearance (optional)</div>
+            <p class="install-step-desc">
+              Head to the <strong>Widget Appearance</strong> tab to change colours, fonts, border
+              radius, and more. Changes take effect for all embedded instances immediately.
+            </p>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 24px">
+
+        <!-- Advanced: custom container -->
+        <details style="font-size:13px;color:#475569">
+          <summary style="cursor:pointer;font-weight:600;color:#1e293b;margin-bottom:10px">
+            Advanced: custom container ID / multiple instances
+          </summary>
+          <p style="margin:10px 0 8px">
+            By default the widget looks for <code>#scheduling-widget</code>. You can use any selector
+            via the <code>data-container</code> attribute:
+          </p>
+          <div class="code-block">
+            <button class="copy-btn" data-target="snippet-custom">Copy</button>
+            <pre id="snippet-custom"></pre>
+          </div>
+          <p style="margin:10px 0 0">
+            You can embed multiple independent instances on the same page by using different container
+            IDs and separate <code>&lt;script&gt;</code> tags — each widget is fully isolated.
+          </p>
+        </details>
+
+      </div><!-- /.card-body -->
+    </div><!-- /.card -->
+
+  </div><!-- /#tab-install -->
+
+</div><!-- /.page -->
+</div><!-- /#site-content -->
+
+<script>
+(function() {
+  'use strict';
+
+  // ── API ────────────────────────────────────────────────────────────────────
+  var SP_AUTH_KEY = 'sp_operator_api_key';
+
+  function api(method, path, body) {
+    var opts = { method: method, headers: {} };
+    var key  = sessionStorage.getItem(SP_AUTH_KEY);
+    if (key) opts.headers['X-Api-Key'] = key;
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function(r){ return r.json(); });
+  }
+  var get   = function(p)    { return api('GET',    p); };
+  var post  = function(p, b) { return api('POST',   p, b); };
+  var put   = function(p, b) { return api('PUT',    p, b); };
+  var del   = function(p)    { return api('DELETE', p); };
+  var patch = function(p, b) { return api('PATCH',  p, b); };
+
+  // ── Message bar ─────────────────────────────────────────────────────────────
+  function showMsg(text, ok) {
+    var bar = document.getElementById('msg-bar');
+    bar.innerHTML = '<div class="msg ' + (ok ? 'msg-ok' : 'msg-err') + '">' + text + '</div>';
+    setTimeout(function(){ bar.innerHTML = ''; }, 3500);
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  var ALL_TABS = ['workers','availability','bookings','appearance','authorization','install'];
+
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      var name = tab.dataset.tab;
+      ALL_TABS.forEach(function(t){
+        document.getElementById('tab-' + t).hidden = (t !== name);
+      });
+      if (name === 'availability')  initAvailTab();
+      if (name === 'bookings')      loadBookings();
+      if (name === 'appearance')    initAppearanceTab();
+      if (name === 'authorization') loadAuthSettings();
+      if (name === 'install')       initInstallTab();
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // WORKERS TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  var workers = [];
+
+  function loadWorkers() {
+    get('/api/workers').then(function(data) {
+      workers = data;
+      renderWorkersTable();
+    });
+  }
+
+  function renderWorkersTable() {
+    var wrap = document.getElementById('workers-table-wrap');
+    if (workers.length === 0) {
+      wrap.innerHTML = '<div class="empty">No workers yet. Add one above.</div>';
+      return;
+    }
+    var html = '<table><thead><tr>' +
+      '<th>Name</th><th>Title</th><th>Status</th><th></th>' +
+      '</tr></thead><tbody>';
+    workers.forEach(function(w) {
+      html += '<tr>' +
+        '<td><strong>' + esc(w.name) + '</strong></td>' +
+        '<td>' + esc(w.title || '—') + '</td>' +
+        '<td><span class="badge ' + (w.is_active ? 'badge-green' : 'badge-gray') + '">' +
+          (w.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+        '<td style="display:flex;gap:6px;justify-content:flex-end">' +
+          '<button class="btn btn-ghost btn-sm" onclick="editWorker(\'' + w.id + '\')">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deactivateWorker(\'' + w.id + '\',' + w.is_active + ')">' +
+            (w.is_active ? 'Deactivate' : 'Activate') + '</button>' +
+        '</td></tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  document.getElementById('btn-add-worker').addEventListener('click', function() {
+    showWorkerForm(null);
+  });
+
+  function showWorkerForm(worker) {
+    var wrap = document.getElementById('worker-form-wrap');
+    var editing = !!worker;
+    wrap.innerHTML = '<div class="inline-form">' +
+      '<h3>' + (editing ? 'Edit Worker' : 'New Worker') + '</h3>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label>Name *</label><input id="wf-name" value="' + esc(editing ? worker.name : '') + '"></div>' +
+        '<div class="form-group"><label>Title</label><input id="wf-title" value="' + esc(editing ? worker.title : '') + '"></div>' +
+        '<div class="form-group full"><label>Bio</label><textarea id="wf-bio">' + esc(editing ? worker.bio : '') + '</textarea></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn-secondary btn-sm" id="wf-cancel">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="wf-save">Save</button>' +
+      '</div>' +
+    '</div>';
+
+    document.getElementById('wf-cancel').onclick = function() { wrap.innerHTML = ''; };
+    document.getElementById('wf-save').onclick = function() {
+      var name = document.getElementById('wf-name').value.trim();
+      if (!name) { showMsg('Name is required', false); return; }
+      var payload = {
+        name:  name,
+        title: document.getElementById('wf-title').value.trim(),
+        bio:   document.getElementById('wf-bio').value.trim(),
+      };
+      var req = editing
+        ? put('/api/workers/' + worker.id, payload)
+        : post('/api/workers', payload);
+      req.then(function(r) {
+        if (r.error) { showMsg(r.error, false); return; }
+        wrap.innerHTML = '';
+        showMsg((editing ? 'Worker updated' : 'Worker added') + ' ✓', true);
+        loadWorkers();
+      });
+    };
+  }
+
+  window.editWorker = function(id) {
+    var w = workers.find(function(x){ return x.id === id; });
+    if (w) showWorkerForm(w);
+  };
+
+  window.deactivateWorker = function(id, isActive) {
+    put('/api/workers/' + id, { is_active: isActive ? 0 : 1 }).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg((isActive ? 'Worker deactivated' : 'Worker activated') + ' ✓', true);
+      loadWorkers();
+    });
+  };
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AVAILABILITY TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  var availInited = false;
+  var gfDur = 30; // selected duration in minutes
+
+  function initAvailTab() {
+    populateWorkerDropdown();
+    if (!availInited) {
+      wireAvailTab();
+      availInited = true;
+    }
+  }
+
+  function populateWorkerDropdown() {
+    get('/api/workers').then(function(data) {
+      workers = data;
+      var sel = document.getElementById('avail-worker');
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">— select worker —</option>';
+      data.filter(function(w){ return w.is_active; }).forEach(function(w) {
+        var opt = document.createElement('option');
+        opt.value = w.id;
+        opt.textContent = w.name;
+        if (w.id === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  function wireAvailTab() {
+    // Duration presets
+    document.querySelectorAll('.dur-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.dur-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        gfDur = +btn.dataset.d;
+      });
+    });
+
+    // Day chips
+    document.querySelectorAll('.day-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        chip.classList.toggle('checked');
+        chip.querySelector('input').checked = chip.classList.contains('checked');
+      });
+    });
+
+    // Generate button
+    document.getElementById('btn-generate').addEventListener('click', function() {
+      var wid = document.getElementById('avail-worker').value;
+      if (!wid) { showMsg('Please select a worker first', false); return; }
+      var from  = document.getElementById('gf-from').value;
+      var to    = document.getElementById('gf-to').value;
+      var start = document.getElementById('gf-start').value;
+      var end   = document.getElementById('gf-end').value;
+      if (!from || !to || !start || !end) { showMsg('Fill in all date/time fields', false); return; }
+      if (from > to) { showMsg('From date must be before To date', false); return; }
+
+      var days = [];
+      document.querySelectorAll('#day-chips input:checked').forEach(function(cb){ days.push(+cb.value); });
+      if (!days.length) { showMsg('Select at least one day of week', false); return; }
+
+      var btn = document.getElementById('btn-generate');
+      var msg = document.getElementById('gen-msg');
+      btn.disabled = true;
+      msg.textContent = 'Generating…';
+      msg.style.color = '#64748b';
+
+      post('/api/availability/generate', {
+        workerId:     wid,
+        from:         from,
+        to:           to,
+        startTime:    start,
+        endTime:      end,
+        slotDuration: gfDur,
+        days:         days,
+      }).then(function(r) {
+        btn.disabled = false;
+        if (r.error) { msg.textContent = '✗ ' + r.error; msg.style.color = '#ef4444'; return; }
+        msg.textContent = '✓ ' + r.added + ' slots generated';
+        msg.style.color = '#22c55e';
+        setTimeout(function(){ msg.textContent = ''; }, 3000);
+        // Refresh day view if same worker + within range
+        if (document.getElementById('avail-date').value) loadSlots();
+      }).catch(function() {
+        btn.disabled = false;
+        msg.textContent = '✗ Request failed';
+        msg.style.color = '#ef4444';
+      });
+    });
+
+    // Load slots button
+    document.getElementById('btn-load-slots').addEventListener('click', loadSlots);
+  }
+
+  function loadSlots() {
+    var wid  = document.getElementById('avail-worker').value;
+    var date = document.getElementById('avail-date').value;
+    if (!wid || !date) { showMsg('Select a worker and date first', false); return; }
+    document.getElementById('add-slot-form-wrap').innerHTML = '';
+    get('/api/availability?workerId=' + wid + '&date=' + date).then(function(slots) {
+      renderSlots(slots, wid, date);
+    });
+  }
+
+  function renderSlots(slots, wid, date) {
+    var wrap = document.getElementById('avail-slots-wrap');
+    var html = '<div class="slots-header">' +
+      '<strong style="font-size:13px">' + slots.length + ' slot(s) on ' + date + '</strong>' +
+      '<button class="btn btn-ghost btn-sm" id="btn-show-add-slot">+ Add Slot</button>' +
+      '</div>';
+
+    if (slots.length === 0) {
+      html += '<div style="font-size:13px;color:#94a3b8;padding:4px 0">No slots for this day.</div>';
+    } else {
+      html += '<div class="slots-grid">';
+      slots.forEach(function(sl) {
+        var booked = sl.is_booked;
+        html += '<div class="slot-item' + (booked ? ' booked' : '') + '">' +
+          '<span>' + sl.start_time.slice(0,5) + '</span>';
+        if (booked) {
+          html += '<span class="slot-booked-lbl" title="' + esc(sl.visitor_name || '') + '">Booked</span>';
+        } else {
+          html += '<button class="btn btn-danger btn-sm" style="padding:2px 6px;font-size:11px" ' +
+            'onclick="deleteSlot(\'' + sl.id + '\')">✕</button>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    wrap.innerHTML = html;
+
+    document.getElementById('btn-show-add-slot').onclick = function() { showAddSlotForm(wid, date); };
+  }
+
+  window.deleteSlot = function(id) {
+    del('/api/availability/' + id).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg('Slot deleted ✓', true);
+      loadSlots();
+    });
+  };
+
+  function showAddSlotForm(wid, date) {
+    var wrap = document.getElementById('add-slot-form-wrap');
+    wrap.innerHTML = '<div class="inline-form" style="margin-top:12px">' +
+      '<h3>Add Slot on ' + date + '</h3>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label>Start Time</label><input type="time" id="as-start" value="09:00"></div>' +
+        '<div class="form-group"><label>End Time</label><input type="time" id="as-end" value="09:30"></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn-secondary btn-sm" id="as-cancel">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="as-save">Add Slot</button>' +
+      '</div></div>';
+
+    document.getElementById('as-cancel').onclick = function() { wrap.innerHTML = ''; };
+    document.getElementById('as-save').onclick = function() {
+      var start = document.getElementById('as-start').value;
+      var end   = document.getElementById('as-end').value;
+      if (!start || !end || start >= end) { showMsg('Invalid time range', false); return; }
+      post('/api/availability/bulk', { workerId: wid, slots: [{ date: date, startTime: start, endTime: end }] })
+        .then(function(r) {
+          if (r.error) { showMsg(r.error, false); return; }
+          wrap.innerHTML = '';
+          showMsg('Slot added ✓', true);
+          loadSlots();
+        });
+    };
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // BOOKINGS TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  var allBookings = [];
+
+  function loadBookings() {
+    document.getElementById('bookings-table-wrap').innerHTML = '<div class="empty">Loading…</div>';
+    get('/api/bookings').then(function(data) {
+      allBookings = Array.isArray(data) ? data : [];
+      // Populate worker filter
+      var workerSel = document.getElementById('filter-worker');
+      var existing = {};
+      workerSel.querySelectorAll('option[value!=""]').forEach(function(o){ existing[o.value] = true; });
+      allBookings.forEach(function(b) {
+        if (!existing[b.worker_name]) {
+          existing[b.worker_name] = true;
+          var opt = document.createElement('option');
+          opt.value = b.worker_name;
+          opt.textContent = b.worker_name;
+          workerSel.appendChild(opt);
+        }
+      });
+      applyBookingFilters();
+    }).catch(function() {
+      document.getElementById('bookings-table-wrap').innerHTML =
+        '<div class="empty">Failed to load bookings. Click ↻ Refresh to try again.</div>';
+    });
+  }
+
+  function applyBookingFilters() {
+    var workerF = document.getElementById('filter-worker').value;
+    var statusF = document.getElementById('filter-status').value;
+    var fromF   = document.getElementById('filter-date-from').value;
+    var toF     = document.getElementById('filter-date-to').value;
+    var searchF = document.getElementById('filter-search').value.toLowerCase().trim();
+
+    var filtered = allBookings.filter(function(b) {
+      if (workerF && b.worker_name !== workerF) return false;
+      if (statusF && b.status !== statusF)       return false;
+      if (fromF   && b.date < fromF)             return false;
+      if (toF     && b.date > toF)               return false;
+      if (searchF) {
+        var hay = (b.visitor_name + ' ' + b.visitor_email + ' ' + (b.visitor_phone||'') + ' ' + (b.notes||'')).toLowerCase();
+        if (hay.indexOf(searchF) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('bookings-count').textContent =
+      filtered.length + ' of ' + allBookings.length + ' booking' + (allBookings.length !== 1 ? 's' : '');
+
+    renderBookings(filtered);
+  }
+
+  // Wire filter inputs
+  ['filter-worker','filter-status','filter-date-from','filter-date-to'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', applyBookingFilters);
+  });
+  document.getElementById('filter-search').addEventListener('input', applyBookingFilters);
+  document.getElementById('btn-clear-filters').addEventListener('click', function() {
+    document.getElementById('filter-worker').value    = '';
+    document.getElementById('filter-status').value    = '';
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value   = '';
+    document.getElementById('filter-search').value    = '';
+    applyBookingFilters();
+  });
+
+  function renderBookings(data) {
+    var wrap = document.getElementById('bookings-table-wrap');
+    if (data.length === 0) {
+      wrap.innerHTML = '<div class="empty">No bookings match the current filters.</div>';
+      return;
+    }
+    var html = '<table><thead><tr>' +
+      '<th>Date</th><th>Time</th><th>Worker</th><th>Visitor</th><th>Contact</th><th>Notes</th><th>Status</th><th>CRM</th><th></th>' +
+      '</tr></thead><tbody>';
+    data.forEach(function(b) {
+      var badge = b.status === 'CONFIRMED' ? 'badge-green'
+                : b.status === 'CANCELLED' ? 'badge-red' : 'badge-gray';
+      var crmBadge = b.crm_deal_id
+        ? '<span class="badge badge-green" title="Deal #' + esc(b.crm_deal_id) + '">Deal ✓</span>'
+        : (b.crm_contact_id
+           ? '<span class="badge badge-gray" title="Contact #' + esc(b.crm_contact_id) + '">Contact ✓</span>'
+           : '<span style="color:#cbd5e1">—</span>');
+      var contact = esc(b.visitor_email);
+      if (b.visitor_phone) contact += '<br><span style="color:#64748b;font-size:11px">' + esc(b.visitor_phone) + '</span>';
+      var notes = b.notes ? '<span title="' + esc(b.notes) + '" style="max-width:120px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(b.notes) + '</span>' : '<span style="color:#cbd5e1">—</span>';
+
+      html += '<tr>' +
+        '<td>' + esc(b.date) + '</td>' +
+        '<td>' + esc(b.start_time) + '</td>' +
+        '<td>' + esc(b.worker_name) + '</td>' +
+        '<td><strong>' + esc(b.visitor_name) + '</strong></td>' +
+        '<td>' + contact + '</td>' +
+        '<td>' + notes + '</td>' +
+        '<td><span class="badge ' + badge + '">' + b.status + '</span></td>' +
+        '<td>' + crmBadge + '</td>' +
+        '<td style="display:flex;gap:5px;min-width:140px">';
+      if (b.status === 'CONFIRMED') {
+        html += '<button class="btn btn-ghost btn-sm" onclick="completeBooking(\'' + b.id + '\')">Complete</button>' +
+                '<button class="btn btn-danger btn-sm" onclick="cancelBooking(\'' + b.id + '\')">Cancel</button>';
+      }
+      html += '</td></tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  window.cancelBooking = function(id) {
+    patch('/api/bookings/' + id + '/cancel').then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg('Booking cancelled ✓', true);
+      // Update in-place — preserves current filters without a full reload
+      for (var i = 0; i < allBookings.length; i++) {
+        if (String(allBookings[i].id) === String(id)) { allBookings[i].status = 'CANCELLED'; break; }
+      }
+      applyBookingFilters();
+    });
+  };
+
+  window.completeBooking = function(id) {
+    patch('/api/bookings/' + id + '/complete').then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg('Marked as completed ✓', true);
+      // Update in-place — preserves current filters without a full reload
+      for (var i = 0; i < allBookings.length; i++) {
+        if (String(allBookings[i].id) === String(id)) { allBookings[i].status = 'COMPLETED'; break; }
+      }
+      applyBookingFilters();
+    });
+  };
+
+  document.getElementById('btn-refresh-bookings').addEventListener('click', loadBookings);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // SITE-LEVEL LOGIN GATE  (API key auth)
+  // ──────────────────────────────────────────────────────────────────────────
+  // SP_AUTH_KEY is defined above in the api() section — stores the actual key
+
+  function openSite(op) {
+    document.getElementById('site-gate').hidden    = true;
+    document.getElementById('site-content').hidden = false;
+    document.getElementById('btn-sign-out').hidden = false;
+    document.getElementById('api-key').textContent = op.api_key || '—';
+    // Stash operator_id so the Install tab can build the right snippet
+    window._operatorId = op.id || '';
+    loadWorkers();
+  }
+
+  function closeSite() {
+    sessionStorage.removeItem(SP_AUTH_KEY);
+    window._operatorId = '';
+    document.getElementById('site-content').hidden = true;
+    document.getElementById('btn-sign-out').hidden = true;
+    document.getElementById('site-gate').hidden    = false;
+    document.getElementById('gate-api-key').value  = '';
+    document.getElementById('gate-err').style.display = 'none';
+    // Reset the install tab so it reinitialises on next open
+    installTabReady = false;
+    setTimeout(function() { document.getElementById('gate-api-key').focus(); }, 50);
+  }
+
+  function tryGateLogin() {
+    var key = document.getElementById('gate-api-key').value.trim();
+    if (!key) { return; }
+    var btn = document.getElementById('btn-gate-submit');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    fetch('/api/operator', { headers: { 'X-Api-Key': key } })
+      .then(function(r) {
+        if (!r.ok) throw new Error('invalid');
+        return r.json();
+      })
+      .then(function(op) {
+        sessionStorage.setItem(SP_AUTH_KEY, key);
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        openSite(op);
+      })
+      .catch(function() {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        document.getElementById('gate-err').style.display = 'block';
+        document.getElementById('gate-api-key').select();
+      });
+  }
+
+  document.getElementById('btn-gate-submit').addEventListener('click', tryGateLogin);
+  document.getElementById('btn-sign-out').addEventListener('click', closeSite);
+  document.getElementById('gate-api-key').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryGateLogin();
+  });
+
+  // Auto-login if a valid key is already in sessionStorage
+  var _savedKey = sessionStorage.getItem(SP_AUTH_KEY);
+  if (_savedKey) {
+    fetch('/api/operator', { headers: { 'X-Api-Key': _savedKey } })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function(op) { openSite(op); })
+      .catch(function() {
+        sessionStorage.removeItem(SP_AUTH_KEY);
+        setTimeout(function() { document.getElementById('gate-api-key').focus(); }, 50);
+      });
+  } else {
+    setTimeout(function() { document.getElementById('gate-api-key').focus(); }, 50);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AUTHORIZATION TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  function setSpStatus(ok, text) {
+    document.getElementById('sp-dot').className = 'status-dot' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+    document.getElementById('sp-status-text').textContent = text;
+  }
+
+  function loadAuthSettings() {
+    get('/api/settings').then(function(s) {
+      document.getElementById('sp-client-id').value       = s.sp_client_id      || '';
+      document.getElementById('sp-pipeline-id').value     = s.sp_pipeline_id    || '';
+      document.getElementById('sp-step-id').value         = s.sp_step_id        || '';
+      document.getElementById('sp-responsible-id').value  = s.sp_responsible_id || '';
+
+      var configured = !!(s.sp_client_id && s.sp_has_secret);
+      setSpStatus(configured ? null : false,
+                  configured ? 'Credentials saved — use Test Connection to verify' : 'Not configured');
+
+      // SMS
+      var smsEnabled = s.sms_enabled === '1';
+      document.getElementById('sms-enabled').checked = smsEnabled;
+      document.getElementById('sms-settings-panel').hidden = !smsEnabled;
+      if (s.sms_sender_id) {
+        var sel = document.getElementById('sms-sender-sel');
+        var found = false;
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === s.sms_sender_id) { found = true; break; }
+        }
+        if (!found) {
+          var opt = document.createElement('option');
+          opt.value = s.sms_sender_id;
+          opt.textContent = s.sms_sender_id;
+          opt.selected = true;
+          sel.appendChild(opt);
+        } else {
+          sel.value = s.sms_sender_id;
+        }
+      }
+      if (smsEnabled) loadSmsSenders();
+    });
+  }
+
+  // Unified Save All Settings
+  document.getElementById('btn-save-auth').addEventListener('click', function() {
+    var payload = {
+      sp_client_id:      document.getElementById('sp-client-id').value.trim(),
+      sp_pipeline_id:    document.getElementById('sp-pipeline-id').value.trim(),
+      sp_step_id:        document.getElementById('sp-step-id').value.trim(),
+      sp_responsible_id: document.getElementById('sp-responsible-id').value.trim(),
+      sms_enabled:       document.getElementById('sms-enabled').checked ? '1' : '0',
+      sms_sender_id:     document.getElementById('sms-sender-sel').value.trim(),
+    };
+    var secret = document.getElementById('sp-client-secret').value.trim();
+    if (secret) payload.sp_client_secret = secret;
+
+    if (!payload.sp_client_id) { showMsg('Client ID is required', false); return; }
+
+    post('/api/settings', payload).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      document.getElementById('sp-client-secret').value = '';
+      showMsg('All settings saved ✓', true);
+      setSpStatus(null, 'Saved — use Test Connection to verify');
+    });
+  });
+
+  // Test connection
+  document.getElementById('btn-test-auth').addEventListener('click', function() {
+    setSpStatus(null, 'Testing…');
+    get('/api/sendpulse/test').then(function(r) {
+      if (r.ok) { setSpStatus(true, r.message || 'Connected ✓'); }
+      else       { setSpStatus(false, r.error || 'Connection failed'); }
+    }).catch(function(e) {
+      setSpStatus(false, 'Request failed: ' + e.message);
+    });
+  });
+
+  // SMS toggle — auto-save when turned OFF
+  document.getElementById('sms-enabled').addEventListener('change', function() {
+    var panel = document.getElementById('sms-settings-panel');
+    panel.hidden = !this.checked;
+    if (this.checked) {
+      loadSmsSenders();
+    } else {
+      post('/api/settings', { sms_enabled: '0' });
+    }
+  });
+
+  function loadSmsSenders() {
+    var sel = document.getElementById('sms-sender-sel');
+    sel.innerHTML = '<option value="">Loading…</option>';
+    get('/api/sendpulse/sms/senders').then(function(data) {
+      var list = Array.isArray(data) ? data : (data.data || data.items || data.senders || []);
+      sel.innerHTML = '<option value="">— select sender —</option>';
+      list.forEach(function(s) {
+        var name = (typeof s === 'string') ? s : (s.name || s.sender || s.id || String(s));
+        var opt  = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      get('/api/settings').then(function(cfg) {
+        if (cfg.sms_sender_id) sel.value = cfg.sms_sender_id;
+      });
+    }).catch(function() {
+      sel.innerHTML = '<option value="">Failed to load senders</option>';
+    });
+  }
+
+  document.getElementById('btn-reload-senders').addEventListener('click', loadSmsSenders);
+
+  document.getElementById('btn-check-balance').addEventListener('click', function() {
+    var badge = document.getElementById('sms-balance-val');
+    badge.textContent = 'Loading…';
+    badge.style.cssText = '';
+    get('/api/sendpulse/sms/balance').then(function(data) {
+      if (data.unavailable) {
+        badge.innerHTML = '<a href="https://app.sendpulse.com/sms" target="_blank" rel="noopener" ' +
+          'style="color:#2563eb;font-size:12px;font-weight:500">View in dashboard ↗</a>';
+        badge.style.background = 'none';
+        badge.style.border = 'none';
+        badge.style.padding = '0';
+        return;
+      }
+      if (data.error) { badge.textContent = '⚠ ' + data.error; return; }
+      // /user/balance/detail returns {balance: {main: "9.36", bonus: "...", currency: "USD"}}
+      var balObj = data.balance;
+      if (balObj && typeof balObj === 'object' && balObj.main !== undefined) {
+        var currency = balObj.currency || '';
+        badge.textContent = balObj.main + (currency ? ' ' + currency : '');
+        badge.style.color = '#16a34a';
+      } else {
+        // Fallback for unexpected response format
+        var val = (typeof balObj === 'string' || typeof balObj === 'number') ? balObj
+                : (data.sms_credits || data.amount || data.credits);
+        badge.textContent = val !== undefined ? String(val) : JSON.stringify(data);
+      }
+    }).catch(function() { badge.textContent = 'Error'; });
+  });
+
+  document.getElementById('btn-load-pipelines').addEventListener('click', function() {
+    document.getElementById('pipelines-panel').innerHTML =
+      '<div class="pipelines-panel"><div style="padding:14px;font-size:13px;color:#64748b">Loading pipelines…</div></div>';
+    get('/api/sendpulse/pipelines').then(function(data) {
+      renderPipelines(data);
+    }).catch(function(e) {
+      document.getElementById('pipelines-panel').innerHTML =
+        '<div class="msg msg-err" style="margin-top:10px">Failed to load: ' + esc(String(e)) + '</div>';
+    });
+  });
+
+  function renderPipelines(data) {
+    var panel = document.getElementById('pipelines-panel');
+    var pipelines = Array.isArray(data) ? data : (data.data || data.pipelines || []);
+    if (!pipelines.length) {
+      panel.innerHTML = '<div class="msg msg-err" style="margin-top:10px">No pipelines returned. Check credentials.</div>';
+      return;
+    }
+    var html = '<div class="pipelines-panel" style="margin-top:10px">' +
+      '<div class="pipelines-panel-hdr">Click a step to auto-fill Pipeline ID &amp; Step ID</div>';
+    pipelines.forEach(function(pip) {
+      var pipId   = pip.id   || pip.pipeline_id || '?';
+      var pipName = pip.name || pip.title       || ('Pipeline ' + pipId);
+      var steps   = pip.steps || pip.pipeline_steps || [];
+      html += '<div class="pipeline-row"><div class="pipeline-name">' + esc(pipName) +
+        ' <span style="font-weight:400;color:#94a3b8;font-size:12px">(ID: ' + esc(String(pipId)) + ')</span></div>';
+      if (steps.length) {
+        html += '<div class="step-list">';
+        steps.forEach(function(step) {
+          var stepId   = step.id   || step.step_id || '?';
+          var stepName = step.name || step.title   || ('Step ' + stepId);
+          html += '<button class="step-btn" data-pip="' + esc(String(pipId)) + '" data-step="' + esc(String(stepId)) + '">' +
+            esc(stepName) + ' <span style="opacity:.6;font-size:11px">#' + esc(String(stepId)) + '</span></button>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div style="font-size:12px;color:#94a3b8;margin-top:4px">No steps found</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.step-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.getElementById('sp-pipeline-id').value = btn.dataset.pip;
+        document.getElementById('sp-step-id').value     = btn.dataset.step;
+        showMsg('Pipeline ' + btn.dataset.pip + ', Step ' + btn.dataset.step + ' selected', true);
+      });
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // WIDGET APPEARANCE TAB
+  // ──────────────────────────────────────────────────────────────────────────
+  var PRESET_COLORS = [
+    '#2863E0','#7F5AF0','#0EA5E9','#10B981','#F59E0B',
+    '#EF4444','#EC4899','#F97316','#14B8A6','#6366F1',
+  ];
+
+  var appearanceInited = false;
+  var wgtCfg = {
+    primary:  '#2863E0',
+    gradient: true,
+    font:     'system',
+    radius:   12,
+    view:     'month',
+    bg:       '#ffffff',
+    text:     '#1c1c28',
+    shadow:   'default',
+  };
+
+  // Hex helpers (mirrored from widget.js)
+  function hexToRgb(hex) {
+    hex = hex.replace('#','');
+    return [parseInt(hex.substr(0,2),16), parseInt(hex.substr(2,2),16), parseInt(hex.substr(4,2),16)];
+  }
+  function clamp(v) { return Math.max(0, Math.min(255, v)); }
+  function darkenHex(hex) {
+    var c = hexToRgb(hex);
+    return '#' + [clamp(c[0]-28),clamp(c[1]-28),clamp(c[2]-28)]
+      .map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join('');
+  }
+
+  // Apply current wgtCfg to the preview iframe (same-origin, no save needed)
+  function applyToPreview() {
+    var iframe = document.getElementById('appearance-preview-frame');
+    try {
+      var doc = iframe.contentDocument || iframe.contentWindow.document;
+      var el  = doc.querySelector('.spw');
+      if (!el) return;
+
+      var hex = wgtCfg.primary;
+      var c   = hexToRgb(hex);
+      var rgb = c.join(',');
+      var darker = darkenHex(hex);
+      var r   = wgtCfg.radius + 'px';
+      var rSm = Math.max(4, wgtCfg.radius - 4) + 'px';
+      var rXl = Math.min(24, wgtCfg.radius + 6) + 'px';
+      var hdrBg = wgtCfg.gradient
+        ? 'linear-gradient(135deg,' + hex + ' 0%,#7F5AF0 100%)'
+        : hex;
+      var shadowMap = { none:'none', default:'0 6px 32px rgba(28,28,40,.11)', strong:'0 12px 48px rgba(28,28,40,.22)' };
+
+      el.style.setProperty('--spw-primary',     hex);
+      el.style.setProperty('--spw-primary-rgb', rgb);
+      el.style.setProperty('--spw-primary-dk',  darker);
+      el.style.setProperty('--spw-primary-lt',  'rgba(' + rgb + ',0.10)');
+      el.style.setProperty('--spw-hdr-bg',      hdrBg);
+      el.style.setProperty('--spw-r',           r);
+      el.style.setProperty('--spw-r-sm',        rSm);
+      el.style.setProperty('--spw-r-xl',        rXl);
+      el.style.setProperty('--spw-bg',          wgtCfg.bg);
+      el.style.setProperty('--spw-text',        wgtCfg.text);
+      el.style.setProperty('--spw-shadow',      shadowMap[wgtCfg.shadow] || shadowMap.default);
+    } catch(e) {}
+  }
+
+  // For font + view-mode changes, reload the iframe (font needs to load from server)
+  function reloadPreview() {
+    var iframe = document.getElementById('appearance-preview-frame');
+    iframe.src = iframe.src;
+  }
+
+  function initAppearanceTab() {
+    if (!appearanceInited) {
+      buildSwatches();
+      wireAppearanceControls();
+      appearanceInited = true;
+    }
+    loadAppearanceCfg();
+  }
+
+  function buildSwatches() {
+    var wrap = document.getElementById('color-swatches');
+    PRESET_COLORS.forEach(function(c) {
+      var el = document.createElement('div');
+      el.className = 'color-swatch';
+      el.style.background = c;
+      el.dataset.color = c;
+      el.title = c;
+      el.addEventListener('click', function() { selectColor(c); applyToPreview(); });
+      wrap.appendChild(el);
+    });
+  }
+
+  function selectColor(hex) {
+    wgtCfg.primary = hex;
+    document.getElementById('wgt-primary-picker').value = hex;
+    document.getElementById('wgt-primary-hex').textContent = hex;
+    document.querySelectorAll('.color-swatch').forEach(function(el) {
+      el.classList.toggle('selected', el.dataset.color === hex);
+    });
+  }
+
+  function wireAppearanceControls() {
+    // Primary color picker
+    document.getElementById('wgt-primary-picker').addEventListener('input', function() {
+      selectColor(this.value);
+      applyToPreview();
+    });
+
+    // Gradient toggle
+    document.getElementById('wgt-gradient').addEventListener('change', function() {
+      wgtCfg.gradient = this.checked;
+      applyToPreview();
+    });
+
+    // Background color
+    document.getElementById('wgt-bg-picker').addEventListener('input', function() {
+      wgtCfg.bg = this.value;
+      document.getElementById('wgt-bg-hex').textContent = this.value;
+      applyToPreview();
+    });
+    document.getElementById('btn-reset-bg').addEventListener('click', function() {
+      wgtCfg.bg = '#ffffff';
+      document.getElementById('wgt-bg-picker').value = '#ffffff';
+      document.getElementById('wgt-bg-hex').textContent = '#ffffff';
+      applyToPreview();
+    });
+
+    // Text color
+    document.getElementById('wgt-text-picker').addEventListener('input', function() {
+      wgtCfg.text = this.value;
+      document.getElementById('wgt-text-hex').textContent = this.value;
+      applyToPreview();
+    });
+    document.getElementById('btn-reset-text').addEventListener('click', function() {
+      wgtCfg.text = '#1c1c28';
+      document.getElementById('wgt-text-picker').value = '#1c1c28';
+      document.getElementById('wgt-text-hex').textContent = '#1c1c28';
+      applyToPreview();
+    });
+
+    // Radius buttons
+    document.querySelectorAll('.radius-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.radius-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        wgtCfg.radius = +btn.dataset.r;
+        applyToPreview();
+      });
+    });
+
+    // Shadow buttons
+    document.querySelectorAll('.shadow-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.shadow-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        wgtCfg.shadow = btn.dataset.s;
+        applyToPreview();
+      });
+    });
+
+    // Font selector — reload iframe so font loads
+    document.getElementById('wgt-font').addEventListener('change', function() {
+      wgtCfg.font = this.value;
+      reloadPreview();
+    });
+
+    // View mode
+    document.querySelectorAll('#view-mode-toggle .mode-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('#view-mode-toggle .mode-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        wgtCfg.view = btn.dataset.mode;
+      });
+    });
+
+    // Save
+    document.getElementById('btn-save-appearance').addEventListener('click', saveAppearance);
+
+    // Re-apply after iframe reloads
+    document.getElementById('appearance-preview-frame').addEventListener('load', function() {
+      setTimeout(applyToPreview, 80);
+    });
+  }
+
+  function loadAppearanceCfg() {
+    get('/api/widget/config').then(function(c) {
+      if (!c) return;
+
+      selectColor(c.primaryColor || '#2863E0');
+
+      var grad = c.headerGradient !== false;
+      document.getElementById('wgt-gradient').checked = grad;
+      wgtCfg.gradient = grad;
+
+      var font = c.fontFamily || 'system';
+      document.getElementById('wgt-font').value = font;
+      wgtCfg.font = font;
+
+      var r = c.borderRadius || 12;
+      wgtCfg.radius = r;
+      document.querySelectorAll('.radius-btn').forEach(function(btn) {
+        btn.classList.toggle('selected', +btn.dataset.r === r);
+      });
+
+      var view = c.viewMode || 'month';
+      wgtCfg.view = view;
+      document.querySelectorAll('#view-mode-toggle .mode-btn').forEach(function(btn) {
+        btn.classList.toggle('selected', btn.dataset.mode === view);
+      });
+
+      var bg = c.bgColor || '#ffffff';
+      wgtCfg.bg = bg;
+      document.getElementById('wgt-bg-picker').value = bg;
+      document.getElementById('wgt-bg-hex').textContent = bg;
+
+      var txt = c.textColor || '#1c1c28';
+      wgtCfg.text = txt;
+      document.getElementById('wgt-text-picker').value = txt;
+      document.getElementById('wgt-text-hex').textContent = txt;
+
+      var shadow = c.shadowIntensity || 'default';
+      wgtCfg.shadow = shadow;
+      document.querySelectorAll('.shadow-btn').forEach(function(btn) {
+        btn.classList.toggle('selected', btn.dataset.s === shadow);
+      });
+
+      setTimeout(applyToPreview, 100);
+    }).catch(function(){});
+  }
+
+  function saveAppearance() {
+    var payload = {
+      wgt_primary:  wgtCfg.primary,
+      wgt_gradient: wgtCfg.gradient ? '1' : '0',
+      wgt_font:     wgtCfg.font,
+      wgt_radius:   String(wgtCfg.radius),
+      wgt_view:     wgtCfg.view,
+      wgt_bg:       wgtCfg.bg,
+      wgt_text:     wgtCfg.text,
+      wgt_shadow:   wgtCfg.shadow,
+    };
+    post('/api/settings', payload).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg('Appearance saved ✓', true);
+      setTimeout(reloadPreview, 300);
+    }).catch(function(e) {
+      showMsg('Save failed: ' + e.message, false);
+    });
+  }
+
+  // ── Escape HTML ────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Go Web bar ─────────────────────────────────────────────────────────────
+  var _tunnelPoll = null;
+
+  function applyTunnelState(s) {
+    var dot        = document.getElementById('tunnel-dot');
+    var txt        = document.getElementById('tunnel-status-text');
+    var btnGo      = document.getElementById('btn-go-web');
+    var btnStop    = document.getElementById('btn-stop-tunnel');
+    var urlRow     = document.getElementById('go-web-url-row');
+    var urlLink    = document.getElementById('tunnel-url-link');
+
+    // dot colour
+    dot.className = 'dot dot-' + s.status;
+
+    if (s.status === 'stopped') {
+      txt.textContent  = 'Offline';
+      btnGo.disabled   = false;
+      btnGo.textContent = '🌐 Go Web';
+      btnStop.hidden   = true;
+      urlRow.hidden    = true;
+      stopTunnelPoll();
+    } else if (s.status === 'starting') {
+      txt.textContent  = 'Starting…';
+      btnGo.disabled   = true;
+      btnGo.textContent = '⏳ Starting…';
+      btnStop.hidden   = false;
+      urlRow.hidden    = true;
+    } else if (s.status === 'running') {
+      txt.textContent  = 'Online';
+      btnGo.disabled   = true;
+      btnGo.textContent = '🌐 Go Web';
+      btnStop.hidden   = false;
+      urlRow.hidden    = false;
+      urlLink.href     = s.url;
+      urlLink.textContent = s.url;
+      stopTunnelPoll();
+      // Also pre-fill the install tab URL field
+      var inp = document.getElementById('install-public-url');
+      if (inp && !inp.value) {
+        inp.value = s.url;
+        updateSnippets(s.url);
+      }
+    } else if (s.status === 'error') {
+      txt.textContent  = '⚠ ' + (s.error || 'Error');
+      btnGo.disabled   = false;
+      btnGo.textContent = '🌐 Go Web';
+      btnStop.hidden   = true;
+      urlRow.hidden    = true;
+      stopTunnelPoll();
+    }
+  }
+
+  function startTunnelPoll() {
+    stopTunnelPoll();
+    _tunnelPoll = setInterval(function() {
+      get('/api/tunnel/status').then(applyTunnelState).catch(function(){});
+    }, 2000);
+  }
+
+  function stopTunnelPoll() {
+    if (_tunnelPoll) { clearInterval(_tunnelPoll); _tunnelPoll = null; }
+  }
+
+  // Check status on load
+  get('/api/tunnel/status').then(applyTunnelState).catch(function(){});
+
+  document.getElementById('btn-go-web').addEventListener('click', function() {
+    post('/api/tunnel/start', {}).then(function() {
+      applyTunnelState({ status: 'starting', url: null, error: '' });
+      startTunnelPoll();
+    }).catch(function(e) {
+      document.getElementById('tunnel-status-text').textContent = '⚠ ' + String(e);
+    });
+  });
+
+  document.getElementById('btn-stop-tunnel').addEventListener('click', function() {
+    stopTunnelPoll();
+    post('/api/tunnel/stop', {}).then(function() {
+      applyTunnelState({ status: 'stopped', url: null, error: '' });
+    });
+  });
+
+  document.getElementById('btn-copy-tunnel-url').addEventListener('click', function() {
+    var url = document.getElementById('tunnel-url-link').textContent;
+    var btn = document.getElementById('btn-copy-tunnel-url');
+    navigator.clipboard.writeText(url).then(function() {
+      btn.textContent = 'Copied!';
+      setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  // ── Widget Install Tab ──────────────────────────────────────────────────────
+  var WIDGET_CDN = 'https://scheduler-prod.duckdns.org/widget.js';
+  var installTabReady = false;
+
+  function buildSnippet(apiUrl) {
+    var url   = (apiUrl || '').replace(/\/$/, '') || 'https://YOUR-SERVER-URL';
+    var opId  = window._operatorId || 'YOUR-OPERATOR-ID';
+    return '<!-- Scheduling Widget -->\n' +
+           '<div id="scheduling-widget"></div>\n' +
+           '<script\n' +
+           '  src="' + WIDGET_CDN + '"\n' +
+           '  data-container="#scheduling-widget"\n' +
+           '  data-api-url="' + url + '"\n' +
+           '  data-operator-id="' + opId + '">\n' +
+           '<\/script>';
+  }
+
+  function buildCustomSnippet(apiUrl) {
+    var url  = (apiUrl || '').replace(/\/$/, '') || 'https://YOUR-SERVER-URL';
+    var opId = window._operatorId || 'YOUR-OPERATOR-ID';
+    return '<!-- Widget in a custom container -->\n' +
+           '<div id="book-a-call"></div>\n' +
+           '<script\n' +
+           '  src="' + WIDGET_CDN + '"\n' +
+           '  data-container="#book-a-call"\n' +
+           '  data-api-url="' + url + '"\n' +
+           '  data-operator-id="' + opId + '">\n' +
+           '<\/script>';
+  }
+
+  function updateSnippets(apiUrl) {
+    var pre = document.getElementById('install-snippet');
+    var pre2 = document.getElementById('snippet-custom');
+    if (pre)  pre.textContent  = buildSnippet(apiUrl);
+    if (pre2) pre2.textContent = buildCustomSnippet(apiUrl);
+  }
+
+  function initInstallTab() {
+    if (installTabReady) return;
+    installTabReady = true;
+
+    // Load saved public URL + operator_id (fall back to production domain)
+    get('/api/settings').then(function(cfg) {
+      // Keep _operatorId up to date in case it changed
+      if (cfg.operator_id) window._operatorId = cfg.operator_id;
+      var saved = cfg.public_url || 'https://scheduler-prod.duckdns.org';
+      document.getElementById('install-public-url').value = saved;
+      updateSnippets(saved);
+    }).catch(function() {
+      var fallback = 'https://scheduler-prod.duckdns.org';
+      document.getElementById('install-public-url').value = fallback;
+      updateSnippets(fallback);
+    });
+
+    // Live-update snippet as user types
+    document.getElementById('install-public-url').addEventListener('input', function() {
+      updateSnippets(this.value.trim());
+      document.getElementById('install-url-status').textContent = '';
+    });
+
+    // Save button
+    document.getElementById('btn-save-public-url').addEventListener('click', function() {
+      var url = document.getElementById('install-public-url').value.trim();
+      post('/api/settings', { public_url: url }).then(function() {
+        var st = document.getElementById('install-url-status');
+        st.textContent = '✓ Saved';
+        st.style.color = '#16a34a';
+        updateSnippets(url);
+        setTimeout(function(){ st.textContent = ''; }, 2500);
+      });
+    });
+
+    // Generic copy buttons with data-target attribute
+    document.querySelectorAll('.copy-btn[data-target]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var target = document.getElementById(btn.dataset.target);
+        if (!target) return;
+        navigator.clipboard.writeText(target.textContent.trim()).then(function() {
+          btn.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+        });
+      });
+    });
+
+    // Snippet copy button (no data-target, uses install-snippet directly)
+    document.getElementById('btn-copy-snippet').addEventListener('click', function() {
+      var pre = document.getElementById('install-snippet');
+      navigator.clipboard.writeText(pre.textContent.trim()).then(function() {
+        var btn = document.getElementById('btn-copy-snippet');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>

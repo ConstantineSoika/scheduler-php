@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — Scheduling Widget</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    nav { background: #1e293b; padding: 12px 24px; display: flex; align-items: center;
+          justify-content: space-between; gap: 16px; }
+    nav .brand { text-decoration: none; font-size: 16px; font-weight: 700; color: #f1f5f9; }
+    nav .badge  { background: #7c3aed; color: #fff; font-size: 10px; font-weight: 700;
+                  padding: 2px 8px; border-radius: 99px; margin-left: 6px; letter-spacing: .04em; }
+    nav .btn-so { background: #334155; color: #cbd5e1; border: none; border-radius: 6px;
+                  padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    nav .btn-so:hover { background: #475569; }
+
+    .page { max-width: 1000px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    /* ── Login gate ── */
+    #admin-gate { min-height: calc(100vh - 56px); display: flex; align-items: center;
+                  justify-content: center; padding: 48px 20px; }
+    .gate-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+                 padding: 32px 28px; width: 100%; max-width: 340px;
+                 box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+    .gate-card h2 { font-size: 17px; margin-bottom: 6px; }
+    .gate-card p  { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+    .gate-card input { width: 100%; padding: 10px 13px; border: 1px solid #e2e8f0;
+                       border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; }
+    .gate-card input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
+    .gate-card .btn { width: 100%; margin-top: 12px; padding: 11px; border: none;
+                      border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+                      background: #7c3aed; color: #fff; }
+    .gate-card .btn:hover:not(:disabled) { background: #6d28d9; }
+    .gate-card .btn:disabled { background: #c4b5fd; cursor: default; }
+    .gate-err { background: #fee2e2; color: #991b1b; border-radius: 7px; padding: 8px 12px;
+                font-size: 13px; margin-top: 10px; display: none; }
+
+    /* ── Stats strip ── */
+    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+                   margin-bottom: 28px; }
+    @media (max-width: 640px) { .stats-strip { grid-template-columns: 1fr 1fr; } }
+    .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+                 padding: 16px 18px; }
+    .stat-val  { font-size: 26px; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 4px; }
+    .stat-lbl  { font-size: 12px; color: #64748b; }
+
+    /* ── Operators table ── */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .card-hdr { display: flex; align-items: center; justify-content: space-between;
+                padding: 14px 18px; border-bottom: 1px solid #f1f5f9; }
+    .card-hdr h2 { font-size: 15px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; color: #64748b; font-size: 11px; font-weight: 700;
+         text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #f1f5f9; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px;
+           color: #334155; font-family: 'SFMono-Regular', Consolas, monospace; word-break: break-all; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-red   { background: #fee2e2; color: #991b1b; }
+
+    .btn-sm { padding: 4px 10px; font-size: 12px; border: 1px solid; border-radius: 6px;
+              cursor: pointer; font-weight: 600; transition: background .12s; }
+    .btn-disable  { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .btn-disable:hover  { background: #ffedd5; }
+    .btn-enable   { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .btn-enable:hover   { background: #dcfce7; }
+
+    .empty { text-align: center; padding: 32px; color: #94a3b8; font-size: 14px; }
+    .msg { padding: 9px 13px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .msg-ok  { background: #dcfce7; color: #166534; }
+    .msg-err { background: #fee2e2; color: #991b1b; }
+
+    /* ── Create operator form ── */
+    .create-form { padding: 16px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: none; }
+    .create-form h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .form-row input { flex: 1; min-width: 150px; padding: 8px 11px; border: 1px solid #e2e8f0;
+                      border-radius: 7px; font-size: 13px; font-family: inherit; outline: none; }
+    .form-row input:focus { border-color: #7c3aed; }
+    .btn-create { padding: 8px 16px; background: #7c3aed; color: #fff; border: none;
+                  border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-create:hover { background: #6d28d9; }
+    #msg-bar { min-height: 20px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div>
+    <a class="brand" href="/">Scheduler.</a>
+    <span class="badge">ADMIN</span>
+  </div>
+  <button class="btn-so" id="btn-sign-out" hidden>Sign Out</button>
+</nav>
+
+<!-- ── Login gate ── -->
+<div id="admin-gate">
+  <div class="gate-card">
+    <div style="font-size:28px;text-align:center;margin-bottom:14px">🛡️</div>
+    <h2>Admin Access</h2>
+    <p>Enter the admin secret key to continue.</p>
+    <input type="password" id="gate-key" placeholder="Admin secret key" autocomplete="current-password">
+    <button class="btn" id="btn-gate-submit">Enter</button>
+    <div class="gate-err" id="gate-err">Invalid admin key</div>
+  </div>
+</div>
+
+<!-- ── Main content ── -->
+<div class="page" id="admin-content" hidden>
+  <div id="msg-bar"></div>
+
+  <!-- Stats -->
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat-card"><div class="stat-val" id="stat-total-ops">—</div><div class="stat-lbl">Total operators</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-active-ops">—</div><div class="stat-lbl">Active operators</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-workers">—</div><div class="stat-lbl">Active workers</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-bookings">—</div><div class="stat-lbl">Total bookings</div></div>
+  </div>
+
+  <!-- Operators table -->
+  <div class="card">
+    <div class="card-hdr">
+      <h2>Operators</h2>
+      <button class="btn-sm btn-enable" id="btn-show-create" style="border-radius:7px;padding:6px 14px;font-size:13px">+ New operator</button>
+    </div>
+
+    <!-- Create operator form (hidden by default) -->
+    <div class="create-form" id="create-form">
+      <h3>Create operator manually</h3>
+      <div class="form-row">
+        <input type="text"  id="new-name"  placeholder="Business name *">
+        <input type="email" id="new-email" placeholder="Email (optional)">
+        <button class="btn-create" id="btn-create-op">Create</button>
+      </div>
+    </div>
+
+    <div id="ops-table-wrap"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var ADMIN_KEY = 'admin_secret_key';
+
+  function apiAdmin(method, path, body) {
+    var key  = sessionStorage.getItem(ADMIN_KEY) || '';
+    var opts = { method: method, headers: { 'X-Admin-Key': key } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function(r) { return r.json(); });
+  }
+  var aGet   = function(p)    { return apiAdmin('GET',   p); };
+  var aPost  = function(p, b) { return apiAdmin('POST',  p, b); };
+  var aPatch = function(p, b) { return apiAdmin('PATCH', p, b); };
+
+  function showMsg(text, ok) {
+    var bar = document.getElementById('msg-bar');
+    bar.innerHTML = '<div class="msg ' + (ok ? 'msg-ok' : 'msg-err') + '">' + text + '</div>';
+    setTimeout(function() { bar.innerHTML = ''; }, 4000);
+  }
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  function openAdmin() {
+    document.getElementById('admin-gate').hidden    = true;
+    document.getElementById('admin-content').hidden = false;
+    document.getElementById('btn-sign-out').hidden  = false;
+    loadStats();
+    loadOperators();
+  }
+
+  function closeAdmin() {
+    sessionStorage.removeItem(ADMIN_KEY);
+    document.getElementById('admin-content').hidden = true;
+    document.getElementById('btn-sign-out').hidden  = true;
+    document.getElementById('admin-gate').hidden    = false;
+    document.getElementById('gate-key').value       = '';
+    document.getElementById('gate-err').style.display = 'none';
+    setTimeout(function() { document.getElementById('gate-key').focus(); }, 50);
+  }
+
+  function tryLogin() {
+    var key = document.getElementById('gate-key').value.trim();
+    if (!key) return;
+    var btn = document.getElementById('btn-gate-submit');
+    btn.disabled = true; btn.textContent = '…';
+    // Quick test: load stats with this key
+    fetch('/api/admin/stats', { headers: { 'X-Admin-Key': key } })
+      .then(function(r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function() {
+        sessionStorage.setItem(ADMIN_KEY, key);
+        btn.disabled = false; btn.textContent = 'Enter';
+        openAdmin();
+      })
+      .catch(function() {
+        btn.disabled = false; btn.textContent = 'Enter';
+        document.getElementById('gate-err').style.display = 'block';
+        document.getElementById('gate-key').select();
+      });
+  }
+
+  document.getElementById('btn-gate-submit').addEventListener('click', tryLogin);
+  document.getElementById('btn-sign-out').addEventListener('click', closeAdmin);
+  document.getElementById('gate-key').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryLogin();
+  });
+
+  var savedAdminKey = sessionStorage.getItem(ADMIN_KEY);
+  if (savedAdminKey) {
+    fetch('/api/admin/stats', { headers: { 'X-Admin-Key': savedAdminKey } })
+      .then(function(r) { return r.ok ? openAdmin() : closeAdmin(); })
+      .catch(closeAdmin);
+  } else {
+    setTimeout(function() { document.getElementById('gate-key').focus(); }, 50);
+  }
+
+  // ── Stats ───────────────────────────────────────────────────────────────────
+  function loadStats() {
+    aGet('/api/admin/stats').then(function(s) {
+      document.getElementById('stat-total-ops').textContent  = s.total_operators  || 0;
+      document.getElementById('stat-active-ops').textContent = s.active_operators || 0;
+      document.getElementById('stat-workers').textContent    = s.active_workers   || 0;
+      document.getElementById('stat-bookings').textContent   = s.total_bookings   || 0;
+    });
+  }
+
+  // ── Operators table ─────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function loadOperators() {
+    document.getElementById('ops-table-wrap').innerHTML = '<div class="empty">Loading…</div>';
+    aGet('/api/admin/operators').then(function(ops) {
+      if (!Array.isArray(ops) || ops.length === 0) {
+        document.getElementById('ops-table-wrap').innerHTML = '<div class="empty">No operators yet.</div>';
+        return;
+      }
+      var html = '<table><thead><tr>' +
+        '<th>Name</th><th>Email</th><th>Operator ID</th><th>API Key</th>' +
+        '<th>Workers</th><th>Bookings</th><th>Status</th><th>Created</th><th></th>' +
+        '</tr></thead><tbody>';
+      ops.forEach(function(op) {
+        var active = op.is_active;
+        html += '<tr>' +
+          '<td><strong>' + esc(op.name) + '</strong></td>' +
+          '<td>' + (op.email ? esc(op.email) : '<span style="color:#cbd5e1">—</span>') + '</td>' +
+          '<td><code>' + esc(op.id) + '</code></td>' +
+          '<td><code>' + esc(op.api_key) + '</code></td>' +
+          '<td style="text-align:center">' + (op.worker_count || 0) + '</td>' +
+          '<td style="text-align:center">' + (op.booking_count || 0) + '</td>' +
+          '<td><span class="badge ' + (active ? 'badge-green' : 'badge-red') + '">' +
+            (active ? 'Active' : 'Disabled') + '</span></td>' +
+          '<td style="color:#64748b;font-size:12px">' + esc((op.created_at || '').slice(0,10)) + '</td>' +
+          '<td>' +
+            (active
+              ? '<button class="btn-sm btn-disable" onclick="toggleOp(\'' + op.id + '\', 0)">Disable</button>'
+              : '<button class="btn-sm btn-enable"  onclick="toggleOp(\'' + op.id + '\', 1)">Enable</button>'
+            ) +
+          '</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('ops-table-wrap').innerHTML = html;
+    }).catch(function() {
+      document.getElementById('ops-table-wrap').innerHTML =
+        '<div class="empty">Failed to load operators.</div>';
+    });
+  }
+
+  window.toggleOp = function(id, active) {
+    aPatch('/api/admin/operators/' + id, { is_active: active }).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg((active ? 'Operator enabled ✓' : 'Operator disabled ✓'), true);
+      loadOperators();
+      loadStats();
+    });
+  };
+
+  // ── Create operator form ────────────────────────────────────────────────────
+  document.getElementById('btn-show-create').addEventListener('click', function() {
+    var form = document.getElementById('create-form');
+    var visible = form.style.display === 'block';
+    form.style.display = visible ? 'none' : 'block';
+    this.textContent   = visible ? '+ New operator' : '✕ Cancel';
+    if (!visible) document.getElementById('new-name').focus();
+  });
+
+  document.getElementById('btn-create-op').addEventListener('click', function() {
+    var name  = document.getElementById('new-name').value.trim();
+    var email = document.getElementById('new-email').value.trim();
+    if (!name) { document.getElementById('new-name').focus(); return; }
+    aPost('/api/admin/operators', { name: name, email: email }).then(function(r) {
+      if (r.error) { showMsg(r.error, false); return; }
+      showMsg('Operator created — API key: ' + r.api_key, true);
+      document.getElementById('new-name').value  = '';
+      document.getElementById('new-email').value = '';
+      document.getElementById('create-form').style.display = 'none';
+      document.getElementById('btn-show-create').textContent = '+ New operator';
+      loadOperators();
+      loadStats();
+    });
+  });
+
+  ['new-name','new-email'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('btn-create-op').click();
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

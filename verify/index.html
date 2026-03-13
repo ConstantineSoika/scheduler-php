@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm your account — Scheduler</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px;
+          display: flex; align-items: center; }
+    nav .brand { text-decoration: none; font-size: 17px; font-weight: 700; color: #2563eb; letter-spacing: -.3px; }
+    nav .brand span { color: #7c3aed; }
+
+    .page { max-width: 540px; margin: 0 auto; padding: 52px 20px 80px; }
+
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+            padding: 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+
+    /* ── Loading state ── */
+    .state { display: none; }
+    .state.active { display: block; }
+
+    #state-loading { text-align: center; padding: 20px 0; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0;
+               border-top-color: #2563eb; border-radius: 50%;
+               animation: spin .7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #state-loading p { font-size: 14px; color: #64748b; }
+
+    /* ── Error state ── */
+    #state-error { text-align: center; }
+    .err-icon { font-size: 48px; margin-bottom: 16px; }
+    #state-error h2 { font-size: 20px; font-weight: 800; color: #991b1b; margin-bottom: 10px; }
+    #state-error p  { font-size: 14px; color: #64748b; line-height: 1.6; }
+    #state-error a  { color: #2563eb; font-weight: 600; }
+
+    /* ── Success state ── */
+    .result-ok { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;
+                 padding: 24px; margin-bottom: 24px; }
+    .result-ok h2 { font-size: 20px; font-weight: 800; color: #166534; margin-bottom: 4px; }
+    .result-ok p  { font-size: 13px; color: #166534; }
+
+    .key-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;
+                 letter-spacing: .04em; margin-bottom: 5px; }
+    .copy-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 20px; }
+    .key-box  { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+                padding: 10px 12px; font-family: 'SFMono-Regular', Consolas, monospace;
+                font-size: 13px; color: #1e293b; word-break: break-all; user-select: all; }
+    .copy-btn { flex-shrink: 0; background: #f1f5f9; border: 1px solid #e2e8f0;
+                border-radius: 8px; padding: 0 14px; font-size: 12px; font-weight: 600;
+                cursor: pointer; color: #334155; transition: background .15s; }
+    .copy-btn:hover { background: #e2e8f0; }
+    .copy-btn.copied { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+
+    .snippet-wrap { background: #0f172a; border-radius: 10px; padding: 16px 48px 16px 16px;
+                    position: relative; margin-bottom: 20px; }
+    .snippet-wrap pre { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;
+                        color: #e2e8f0; line-height: 1.6; white-space: pre; overflow-x: auto; }
+    .snippet-copy { position: absolute; top: 10px; right: 10px; background: #334155;
+                    color: #e2e8f0; border: none; border-radius: 5px; padding: 4px 10px;
+                    font-size: 11px; cursor: pointer; transition: background .15s; }
+    .snippet-copy:hover { background: #475569; }
+    .snippet-copy.copied { background: #166534; color: #fff; }
+
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+    .next-steps { font-size: 13px; color: #475569; line-height: 1.9; }
+    .next-steps a { color: #2563eb; font-weight: 600; }
+
+    .btn-dash { display: block; width: 100%; padding: 12px; border: none; border-radius: 9px;
+                font-size: 15px; font-weight: 700; cursor: pointer; background: #2563eb;
+                color: #fff; text-align: center; text-decoration: none; margin-top: 20px;
+                transition: background .15s; }
+    .btn-dash:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/">Scheduler<span>.</span></a>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <!-- Loading -->
+    <div class="state active" id="state-loading">
+      <div class="spinner"></div>
+      <p>Confirming your account…</p>
+    </div>
+
+    <!-- Error -->
+    <div class="state" id="state-error">
+      <div class="err-icon">🔗</div>
+      <h2>Link invalid or expired</h2>
+      <p id="err-msg">This confirmation link is invalid or has already been used.</p>
+      <p style="margin-top:14px"><a href="/register">← Register again</a></p>
+    </div>
+
+    <!-- Success -->
+    <div class="state" id="state-success">
+      <div class="result-ok">
+        <h2>🎉 Email confirmed!</h2>
+        <p>Save your API key — you'll need it to log into the dashboard.</p>
+      </div>
+
+      <div class="key-label">API Key (your dashboard password)</div>
+      <div class="copy-row">
+        <div class="key-box" id="res-api-key"></div>
+        <button class="copy-btn" id="btn-copy-key">Copy</button>
+      </div>
+
+      <div class="key-label">Embed snippet</div>
+      <p style="font-size:13px;color:#64748b;margin-bottom:8px">Paste this just before <code>&lt;/body&gt;</code> on your page:</p>
+      <div class="snippet-wrap">
+        <button class="snippet-copy" id="btn-copy-snippet">Copy</button>
+        <pre id="res-snippet"></pre>
+      </div>
+
+      <hr class="divider">
+
+      <div class="next-steps">
+        <strong>Next steps:</strong><br>
+        1. <a href="/settings" id="dash-link">Open the dashboard</a> — sign in with your API key above<br>
+        2. Add your workers and set their availability<br>
+        3. Paste the snippet into your website — done!
+      </div>
+
+      <a href="/settings" class="btn-dash" id="btn-go-dash">Go to dashboard →</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  function show(id) {
+    ['state-loading','state-error','state-success'].forEach(function(s) {
+      document.getElementById(s).classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function copyBtn(btnId, textId) {
+    document.getElementById(btnId).addEventListener('click', function() {
+      var text = document.getElementById(textId).textContent.trim();
+      navigator.clipboard.writeText(text).then(function() {
+        var b = document.getElementById(btnId);
+        b.textContent = 'Copied!';
+        b.classList.add('copied');
+        setTimeout(function() {
+          b.textContent = 'Copy';
+          b.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  }
+
+  // Read token from URL
+  var token = new URLSearchParams(window.location.search).get('token') || '';
+  if (!token) {
+    document.getElementById('err-msg').textContent = 'No verification token found in the URL.';
+    show('state-error');
+    return;
+  }
+
+  // Call API
+  fetch('/api/verify?token=' + encodeURIComponent(token))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        document.getElementById('err-msg').textContent = data.error;
+        show('state-error');
+        return;
+      }
+      document.getElementById('res-api-key').textContent = data.apiKey;
+      document.getElementById('res-snippet').textContent = data.snippet;
+      document.getElementById('btn-go-dash').href        = data.dashboardUrl || '/settings';
+      document.getElementById('dash-link').href          = data.dashboardUrl || '/settings';
+      show('state-success');
+
+      copyBtn('btn-copy-key',     'res-api-key');
+      copyBtn('btn-copy-snippet', 'res-snippet');
+    })
+    .catch(function() {
+      document.getElementById('err-msg').textContent = 'Network error — please try again.';
+      show('state-error');
+    });
+
+})();
+</script>
+</body>
+</html>

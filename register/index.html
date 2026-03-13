@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create your Scheduling Widget account</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px;
+          display: flex; align-items: center; gap: 16px; }
+    nav .brand { text-decoration: none; font-size: 17px; font-weight: 700; color: #2563eb; letter-spacing: -.3px; }
+    nav .brand span { color: #7c3aed; }
+
+    .page { max-width: 500px; margin: 0 auto; padding: 52px 20px 80px; }
+
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+            padding: 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+    .card h1 { font-size: 22px; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+    .card .sub { font-size: 14px; color: #64748b; margin-bottom: 28px; line-height: 1.5; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: #475569;
+                        margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    .form-group input { width: 100%; padding: 10px 13px; border: 1px solid #e2e8f0;
+                        border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
+                        transition: border-color .15s, box-shadow .15s; }
+    .form-group input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
+
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 9px; font-size: 15px;
+           font-weight: 700; cursor: pointer; transition: background .15s; margin-top: 8px; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-primary:disabled { background: #93c5fd; cursor: default; }
+
+    .err-box { background: #fee2e2; color: #991b1b; border-radius: 8px;
+               padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
+
+    /* ── Check-inbox panel ── */
+    .result { display: none; text-align: center; }
+    .inbox-icon { font-size: 52px; margin-bottom: 16px; }
+    .result h2 { font-size: 22px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+    .result p  { font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }
+    .result .em { font-weight: 700; color: #1e293b; }
+    .result .hint { font-size: 12px; color: #94a3b8; margin-top: 20px; }
+
+    .login-link { text-align: center; font-size: 13px; color: #64748b; margin-top: 20px; }
+    .login-link a { color: #2563eb; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/">Scheduler<span>.</span></a>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <!-- ── Register form ── -->
+    <div id="form-section">
+      <h1>Get started free</h1>
+      <p class="sub">Create your scheduling widget in 30 seconds. No credit card required.</p>
+
+      <div class="err-box" id="err-box"></div>
+
+      <div class="form-group">
+        <label>Your name or business name <span style="color:#ef4444">*</span></label>
+        <input type="text" id="reg-name" placeholder="e.g. Olena Beauty Studio" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label>Email <span style="color:#ef4444">*</span></label>
+        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <button class="btn btn-primary" id="btn-register">Create my widget →</button>
+
+      <div class="login-link">Already have an account? <a href="/settings">Sign in →</a></div>
+    </div>
+
+    <!-- ── Check inbox panel (shown after success) ── -->
+    <div class="result" id="result-section">
+      <div class="inbox-icon">📬</div>
+      <h2>Check your inbox!</h2>
+      <p>We've sent a confirmation link to<br><span class="em" id="res-email"></span></p>
+      <p>Click the link in that email to confirm your address and get your API key.</p>
+      <p class="hint">Didn't receive it? Check your spam folder, or <a href="/register" style="color:#2563eb;font-weight:600">try again</a>.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var btn    = document.getElementById('btn-register');
+  var errBox = document.getElementById('err-box');
+
+  btn.addEventListener('click', function() {
+    var name  = document.getElementById('reg-name').value.trim();
+    var email = document.getElementById('reg-email').value.trim();
+
+    if (!name) {
+      errBox.textContent = 'Please enter your name or business name.';
+      errBox.style.display = 'block';
+      document.getElementById('reg-name').focus();
+      return;
+    }
+    if (!email) {
+      errBox.textContent = 'Please enter your email address.';
+      errBox.style.display = 'block';
+      document.getElementById('reg-email').focus();
+      return;
+    }
+
+    errBox.style.display = 'none';
+    btn.disabled    = true;
+    btn.textContent = 'Sending…';
+
+    fetch('/api/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name: name, email: email }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        errBox.textContent = data.error;
+        errBox.style.display = 'block';
+        btn.disabled    = false;
+        btn.textContent = 'Create my widget →';
+        return;
+      }
+      // Show "check inbox" panel
+      document.getElementById('res-email').textContent = email;
+      document.getElementById('form-section').style.display  = 'none';
+      document.getElementById('result-section').style.display = 'block';
+    })
+    .catch(function() {
+      errBox.textContent = 'Network error — please try again.';
+      errBox.style.display = 'block';
+      btn.disabled    = false;
+      btn.textContent = 'Create my widget →';
+    });
+  });
+
+  // Enter key submits
+  ['reg-name', 'reg-email'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') btn.click();
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
